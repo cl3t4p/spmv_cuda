@@ -4,6 +4,7 @@
 
 #ifndef SPMV_MATRIX_MARKET_H
 #define SPMV_MATRIX_MARKET_H
+#include <cstdint>
 #include <sys/types.h>
 #include <string>
 #include <vector>
@@ -28,25 +29,26 @@ COO_Struct* read_matrix_market(const char *filename);
 class COO{
 	private:
 		std::vector<COO_Entry> entries;
-		u_int32_t rows;
-		u_int32_t cols;
-		u_int32_t nnz;
+		uint32_t rows;
+		uint32_t cols;
+		uint32_t nnz;
 		
 	public:
 		bool load_from_file(std::string path);
-		double multiply_cpu(std::vector<double> dense_vec);
-		u_int32_t getRows(){
+		std::vector<double> multiply_cpu(std::vector<double> dense_vec,uint8_t n_process);
+		uint32_t getRows(){
 			return rows;
 		}
-		u_int32_t getCols(){
+		uint32_t getCols(){
 			return cols;
 		}
-		u_int32_t getNnz(){
+		uint32_t getNnz(){
 			return nnz;
 		}
 		std::vector<COO_Entry> getEntries(){
 			return entries;
 		}
+		double compute_cell(uint32_t row,const std::vector<double> &dense_vec);
 };
 
 

@@ -1,8 +1,10 @@
 #include "matrix_market.h"
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <ostream>
 #include <sstream>
+#include <thread>
 #include <vector>
 
 
@@ -52,14 +54,25 @@ bool COO::load_from_file(std::string path){
 	return true;
 }
 
-
-double COO::multiply_cpu(std::vector<double> dense_vec){
-	for(COO_Entry entry : entries)
+double COO::compute_cell(uint32_t row,std::vector<double> dense_vec){
+	double result = 0;
+	for (COO_Entry entry : entries){
+		if(entry.row == row){
+			result += entry.val * dense_vec[entry.col-1];
+		}
+	}
+	return result;
 }
 
 
 
-
+std::vector<double> COO::multiply_cpu(std::vector<double> dense_vec,uint8_t n_process){
+	std::vector<double> result(dense_vec.size());
+	for(uint32_t x = 0;x < dense_vec.size();x++){
+		result[x] = compute_cell(x+1, dense_vec);
+	}
+	return result;
+}
 
 
 

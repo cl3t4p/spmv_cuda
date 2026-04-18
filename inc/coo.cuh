@@ -12,6 +12,7 @@
 
 
 
+
 typedef struct {
     u_int32_t rows;
     u_int32_t cols;
@@ -28,6 +29,11 @@ typedef struct {
 	COO_Matrix matrix;
 }GPU_COO_Pointers;
 
+
+
+__global__ void spmv_coo_kernel(COO_Matrix matrix,double *dense_vec,double *result);
+
+
 class COO{
 	private:
 		COO_Matrix matrix;
@@ -35,21 +41,27 @@ class COO{
 		~COO();
 		
 		GPU_COO_Pointers gpu_prep(double *dense_vec);
-		void gpu_compute(const GPU_COO_Pointers pointers,uint grid_size,uint blk_size);
 		const std::vector<double> gpu_retrive(GPU_COO_Pointers pointers);
-		void gpu_free(GPU_COO_Pointers pointers);
+		inline void gpu_compute(const GPU_COO_Pointers* pointers,const uint grid_size, const uint blk_size){
+			spmv_coo_kernel<<<grid_size,blk_size>>>(pointers->matrix, pointers->dense_vec,pointers->result);
+		}
+
+		inline void free_result(const GPU_COO_Pointers* pointers){
+			cudaMemset(pointers->result, 0.0, getRows() * sizeof(double));
+		}
+		void gpu_free(const GPU_COO_Pointers pointers);
 		bool load_from_file(std::string path);
 		std::vector<double> cpu_compute(std::vector<double> dense_vec);
-		uint32_t getRows(){
+		inline uint32_t getRows(){
 			return matrix.rows;
 		}
-		uint32_t getCols(){
-			return matrix.rows;
+		inline uint32_t getCols(){
+			return matrix.cols;
 		}
-		uint32_t getNnz(){
-			return matrix.rows;
+		inline uint32_t getNnz(){
+			return matrix.nnz;
 		}
-		COO_Matrix getMatrix(){
+		inline COO_Matrix getMatrix(){
 			return matrix;
 		}
 };
@@ -74,8 +86,4 @@ class CSR{
 		}
 };
 
-
-
-
-std::vector<double> load_dense_vec_from_file(std::string path);
 #endif //SPMV_MATRIX_MARKET_H

@@ -1,20 +1,24 @@
-#include "matrix_market.h"
+#include "coo.cuh"
 #include <cstdint>
 #include <cstdlib>
-#include <cuda_device_runtime_api.h>
 #include <fstream>
 #include <iostream>
 #include <ostream>
 #include <sstream>
-#include <string>
 #include <sys/types.h>
 #include <vector>
 
-#include "cuda_kernels.cuh"
-#include <cuda_runtime.h>
-#include <cuda_runtime_api.h>
-#include <driver_types.h>
 
+
+__global__ void spmv_coo_kernel(COO_Matrix matrix,double *dense_vec,double *result){
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if(i< matrix.nnz){
+		int row = matrix.row_p[i];
+		int col = matrix.col_p[i];
+		double val = matrix.val_p[i];
+		atomicAdd(&result[row],val* dense_vec[col]);
+	}
+}
 
 std::vector<std::string> split_line(std::string line){
 	std::istringstream iss(line);
@@ -24,38 +28,6 @@ std::vector<std::string> split_line(std::string line){
 		result.push_back(val);
 	}
 
-	return result;
-}
-
-std::vector<double> load_dense_vec_from_file(std::string path){
-	auto ifs_vec = std::ifstream(path);
-	if(!ifs_vec.is_open()){
-		std::cerr << "file "<< path << " does not exists!" << std::endl;
-		return std::vector<double>();
-	}
-	std::string line;
-	while(std::getline(ifs_vec,line)){
-		if(line.at(0) != '%'){
-			break;
-		}
-	}
-
-	auto vec_info = split_line(line);
-	uint32_t vec_size = std::stoull(vec_info[0]);
-	
-	std::vector<double> result(vec_size);
-
-
-	int index = 0;
-	while(std::getline(ifs_vec,line)){
-		result[index] = std::stod(line);
-		index++;
-	}
-
-	if(vec_size != index){
-		std::cerr << "nnz "<< vec_size << " size does not match matrix" << index << "!" << std::endl;
-		return std::vector<double>();
-	}
 	return result;
 }
 
@@ -100,7 +72,7 @@ bool COO::load_from_file(std::string path){
 }
 
 std::vector<double> COO::cpu_compute(std::vector<double> dense_vec) {
-    std::vector<double> result(matrix.cols, 0.0);
+    std::vector<double> result(getCols(), 0.0);
 
     #pragma omp parallel for schedule(static)
     for (uint32_t i = 0; i < matrix.nnz; i++) {
@@ -110,6 +82,8 @@ std::vector<double> COO::cpu_compute(std::vector<double> dense_vec) {
 
     return result;
 }
+
+
 
 
 
@@ -127,8 +101,8 @@ GPU_COO_Pointers COO::gpu_prep(double *dense_vec){
 	cudaMalloc(&pointers.matrix.col_p,nnz*sizeof(uint32_t));
 	cudaMalloc(&pointers.matrix.val_p,nnz*sizeof(double));
 
-	cudaMalloc(&pointers.dense_vec,matrix.cols * sizeof(double));
-	cudaMalloc(&pointers.result,matrix.cols * sizeof(double));
+	cudaMalloc(&pointers.dense_vec,getCols() * sizeof(double));
+	cudaMalloc(&pointers.result,getCols() * sizeof(double));
 	
 
 	//Copy
@@ -136,19 +110,16 @@ GPU_COO_Pointers COO::gpu_prep(double *dense_vec){
 	cudaMemcpy(pointers.matrix.col_p, matrix.col_p, nnz * sizeof(uint32_t), cudaMemcpyHostToDevice);
 	cudaMemcpy(pointers.matrix.val_p, matrix.val_p, nnz * sizeof(double),   cudaMemcpyHostToDevice);
 
-	cudaMemcpy(pointers.dense_vec, dense_vec,matrix.rows*sizeof(double),cudaMemcpyHostToDevice);
-	cudaMemset(pointers.result, 0, matrix.rows*sizeof(double));
+	cudaMemcpy(pointers.dense_vec, dense_vec,getCols() *sizeof(double),cudaMemcpyHostToDevice);
+	cudaMemset(pointers.result, 0, getCols() * sizeof(double));
 	return pointers;
 }
-void COO::gpu_compute(const GPU_COO_Pointers pointers,uint grid_size,uint blk_size){
-	spmv_coo_kernel<<<grid_size,blk_size>>>(pointers.matrix, pointers.dense_vec,pointers.result);
-	cudaDeviceSynchronize();
-}
 
 
-const std::vector<double> COO::gpu_retrive(GPU_COO_Pointers pointers){
-	std::vector<double> result(matrix.cols);
-	cudaMemcpy(result.data(), pointers.result,matrix.cols*sizeof(double),cudaMemcpyDeviceToHost);
+
+const std::vector<double> COO::gpu_retrive(const GPU_COO_Pointers pointers){
+	std::vector<double> result(getCols());
+	cudaMemcpy(result.data(), pointers.result, getCols() *sizeof(double),cudaMemcpyDeviceToHost);
 	return result;
 }
 
@@ -165,8 +136,6 @@ COO::~COO(){
 	free(matrix.col_p);
 	free(matrix.row_p);
 }
-
-
 
 
 

@@ -2,6 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 target("spmv")
     set_kind("binary")
+    add_files("src/*.cpp")
     add_files("src/*.cu")
     add_cugencodes("native")
     add_includedirs("inc/")

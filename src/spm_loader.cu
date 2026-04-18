@@ -70,7 +70,7 @@ bool MatrixMarketLoader<T>::load(const std::string &path,
   }
 
   while (std::getline(ifs_mtx, line)) {
-    if (line.empty() || line[0] == '%') {
+    if (!line.empty() && line[0] != '%') {
       break;
     }
   }

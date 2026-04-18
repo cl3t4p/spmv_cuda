@@ -26,8 +26,7 @@ enum class Symmetry { General, Symmetric, SkewSymmetric };
 } // namespace
 
 template <typename T>
-bool MatrixMarketLoader<T>::load(const std::string &path,
-                                 typename COO<T>::COO_Matrix &out) {
+bool MatrixMarketLoader<T>::load(const std::string &path,COO_Matrix<T> &out) {
   auto ifs_mtx = std::ifstream(path);
   if (!ifs_mtx.is_open()) {
     std::cerr << "file " << path << " does not exists!" << std::endl;

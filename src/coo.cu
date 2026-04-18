@@ -6,7 +6,7 @@
 #include <vector>
 
 template <typename T>
-__global__ void spmv_coo_kernel(typename COO<T>::COO_Matrix matrix,
+__global__ void spmv_coo_kernel(COO_Matrix<T> matrix,
                                 const T *dense_vec, T *result) {
   uint i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < matrix.nnz) {
@@ -18,69 +18,52 @@ __global__ void spmv_coo_kernel(typename COO<T>::COO_Matrix matrix,
 }
 
 template <typename T>
-void COO<T>::gpu_compute(GPU_COO_Pointers *pointers, uint grid_size,
-                         uint blk_size) {
-  spmv_coo_kernel<T><<<grid_size, blk_size>>>(
-      pointers->matrix, pointers->dense_vec, pointers->result);
+void COO<T>::gpu_compute(GPU_Pointers *pointers, uint grid_size,uint blk_size) {
+  spmv_coo_kernel<T><<<grid_size, blk_size>>>(pointers->matrix, pointers->dense_vec, pointers->result);
 }
 
 template <typename T>
 bool COO<T>::load_from_file(const std::string &path) {
-  return MatrixMarketLoader<T>::load(path, matrix);
+  return MatrixMarketLoader<T>::load(path, this->matrix);
 }
 
 template <typename T>
-std::vector<T> COO<T>::cpu_compute(const std::vector<T> &dense_vec) const {
-  std::vector<T> result(getCols(), 0);
+typename COO<T>::GPU_Pointers COO<T>::gpu_prep(const T *dense_vec) const {
+  const uint32_t nnz = this->matrix.nnz;
+  GPU_Pointers pointers;
 
-#pragma omp parallel for schedule(static)
-  for (uint32_t i = 0; i < matrix.nnz; i++) {
-#pragma omp atomic
-    result[matrix.row_p[i]] +=
-        matrix.val_p[i] * dense_vec[matrix.col_p[i]];
-  }
-
-  return result;
-}
-
-template <typename T>
-typename COO<T>::GPU_COO_Pointers COO<T>::gpu_prep(const T *dense_vec) const {
-  const uint32_t nnz = matrix.nnz;
-  GPU_COO_Pointers pointers;
-
-  pointers.matrix = matrix;
+  pointers.matrix = this->matrix;
 
   cudaMalloc(&pointers.matrix.row_p, nnz * sizeof(uint32_t));
   cudaMalloc(&pointers.matrix.col_p, nnz * sizeof(uint32_t));
   cudaMalloc(&pointers.matrix.val_p, nnz * sizeof(T));
 
-  cudaMalloc(&pointers.dense_vec, getCols() * sizeof(T));
-  cudaMalloc(&pointers.result, getCols() * sizeof(T));
+  cudaMalloc(&pointers.dense_vec, this->getCols() * sizeof(T));
+  cudaMalloc(&pointers.result, this->getCols() * sizeof(T));
 
-  cudaMemcpy(pointers.matrix.row_p, matrix.row_p, nnz * sizeof(uint32_t),
+  cudaMemcpy(pointers.matrix.row_p, this->matrix.row_p, nnz * sizeof(uint32_t),
              cudaMemcpyHostToDevice);
-  cudaMemcpy(pointers.matrix.col_p, matrix.col_p, nnz * sizeof(uint32_t),
+  cudaMemcpy(pointers.matrix.col_p, this->matrix.col_p, nnz * sizeof(uint32_t),
              cudaMemcpyHostToDevice);
-  cudaMemcpy(pointers.matrix.val_p, matrix.val_p, nnz * sizeof(T),
+  cudaMemcpy(pointers.matrix.val_p, this->matrix.val_p, nnz * sizeof(T),
              cudaMemcpyHostToDevice);
 
-  cudaMemcpy(pointers.dense_vec, dense_vec, getCols() * sizeof(T),
+  cudaMemcpy(pointers.dense_vec, dense_vec, this->getCols() * sizeof(T),
              cudaMemcpyHostToDevice);
-  cudaMemset(pointers.result, 0, getCols() * sizeof(T));
+  cudaMemset(pointers.result, 0, this->getCols() * sizeof(T));
   return pointers;
 }
 
 template <typename T>
-std::vector<T>
-COO<T>::gpu_retrive(const GPU_COO_Pointers &pointers) const {
-  std::vector<T> result(getCols());
-  cudaMemcpy(result.data(), pointers.result, getCols() * sizeof(T),
+std::vector<T> COO<T>::gpu_retrive(const GPU_Pointers &pointers){
+  std::vector<T> result(this->getCols());
+  cudaMemcpy(result.data(), pointers.result, this->getCols() * sizeof(T),
              cudaMemcpyDeviceToHost);
   return result;
 }
 
 template <typename T>
-void COO<T>::gpu_free(const GPU_COO_Pointers &pointers) {
+void COO<T>::gpu_free(const GPU_Pointers &pointers) {
   cudaFree(pointers.matrix.row_p);
   cudaFree(pointers.matrix.col_p);
   cudaFree(pointers.matrix.val_p);
@@ -89,9 +72,9 @@ void COO<T>::gpu_free(const GPU_COO_Pointers &pointers) {
 }
 
 template <typename T> COO<T>::~COO() {
-  free(matrix.val_p);
-  free(matrix.col_p);
-  free(matrix.row_p);
+  free(this->matrix.val_p);
+  free(this->matrix.col_p);
+  free(this->matrix.row_p);
 }
 
 // Explicit instantiations. atomicAdd supports int, float, double (sm_60+).
@@ -100,9 +83,9 @@ template class COO<float>;
 template class COO<double>;
 
 template __global__ void
-spmv_coo_kernel<int>(COO<int>::COO_Matrix, const int *, int *);
+spmv_coo_kernel<int>(COO_Matrix<int>, const int *, int *);
 template __global__ void
-spmv_coo_kernel<float>(COO<float>::COO_Matrix, const float *, float *);
+spmv_coo_kernel<float>(COO_Matrix<float>, const float *, float *);
 template __global__ void
-spmv_coo_kernel<double>(COO<double>::COO_Matrix, const double *,
+spmv_coo_kernel<double>(COO_Matrix<double>, const double *,
                         double *);

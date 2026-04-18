@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "coo.cuh"
+#include "csr.cuh"
 #include "utils.h"
 
 template <typename T> int run(const char *path) {
-  COO<T> coo;
+  CSR<T> coo;
 
   std::cout << "loading matrix" << std::endl;
   if (!coo.load_from_file(path)) {
@@ -58,7 +59,7 @@ template <typename T> int run(const char *path) {
     gpu_times.push_back(TIMER_ELAPSED);
   }
   auto gpu_result = coo.gpu_retrive(gpu_pointers);
-  COO<T>::gpu_free(gpu_pointers);
+  CSR<T>::gpu_free(gpu_pointers);
 
   std::cout << "Comparing" << std::endl;
 

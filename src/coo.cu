@@ -1,77 +1,37 @@
 #include "coo.cuh"
+#include "spm_loader.cuh"
 #include <cstdint>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <ostream>
-#include <sstream>
 #include <vector>
 
-__global__ void spmv_coo_kernel(const COO_Matrix &matrix,
-                                const double *dense_vec, double *result) {
+template <typename T>
+__global__ void spmv_coo_kernel(typename COO<T>::COO_Matrix matrix,
+                                const T *dense_vec, T *result) {
   uint i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < matrix.nnz) {
     const uint row = matrix.row_p[i];
     const uint col = matrix.col_p[i];
-    const double val = matrix.val_p[i];
-    atomicAdd(&result[row], val * dense_vec[col]);
+    const T val = matrix.val_p[i];
+    atomicAdd(&result[row - 1], val * dense_vec[col - 1]);
   }
 }
 
-std::vector<std::string> split_line(const std::string &line) {
-  std::istringstream iss(line);
-  std::vector<std::string> result;
-  std::string val;
-  while (iss >> val) {
-    result.push_back(val);
-  }
-
-  return result;
+template <typename T>
+void COO<T>::gpu_compute(GPU_COO_Pointers *pointers, uint grid_size,
+                         uint blk_size) {
+  spmv_coo_kernel<T><<<grid_size, blk_size>>>(
+      pointers->matrix, pointers->dense_vec, pointers->result);
 }
 
-bool COO::load_from_file(const std::string &path) {
-  auto ifs_mtx = std::ifstream(path);
-  if (!ifs_mtx.is_open()) {
-    std::cerr << "file " << path << " does not exists!" << std::endl;
-    return false;
-  }
-  std::string line;
-  while (std::getline(ifs_mtx, line)) {
-    if (line.at(0) != '%') {
-      break;
-    }
-  }
-
-  auto coo_info = split_line(line);
-  matrix.rows = std::stoull(coo_info[0]);
-  matrix.cols = std::stoull(coo_info[1]);
-  matrix.nnz = std::stoull(coo_info[2]);
-
-  // Malloc
-  matrix.row_p = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * matrix.nnz));
-  matrix.col_p = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * matrix.nnz));
-  matrix.val_p = static_cast<double *>(malloc(sizeof(double) * matrix.nnz));
-
-  int index = 0;
-
-  while (std::getline(ifs_mtx, line)) {
-    auto entry_info = split_line(line);
-    matrix.row_p[index] = std::stoull(entry_info[0]);
-    matrix.col_p[index] = std::stoull(entry_info[1]);
-    matrix.val_p[index] = std::stod(entry_info[2]);
-    index++;
-  }
-
-  if (matrix.nnz != index) {
-    std::cerr << "nnz " << matrix.nnz << " size does not match matrix" << index
-              << "!" << std::endl;
-    return false;
-  }
-  return true;
+template <typename T>
+bool COO<T>::load_from_file(const std::string &path) {
+  return MatrixMarketLoader<T>::load(path, matrix);
 }
 
-std::vector<double> COO::cpu_compute(const std::vector<double> &dense_vec) {
-  std::vector<double> result(getCols(), 0.0);
+template <typename T>
+std::vector<T> COO<T>::cpu_compute(const std::vector<T> &dense_vec) const {
+  std::vector<T> result(getCols(), 0);
 
 #pragma omp parallel for schedule(static)
   for (uint32_t i = 0; i < matrix.nnz; i++) {
@@ -83,43 +43,44 @@ std::vector<double> COO::cpu_compute(const std::vector<double> &dense_vec) {
   return result;
 }
 
-GPU_COO_Pointers COO::gpu_prep(const double *dense_vec) {
+template <typename T>
+typename COO<T>::GPU_COO_Pointers COO<T>::gpu_prep(const T *dense_vec) const {
   const uint32_t nnz = matrix.nnz;
   GPU_COO_Pointers pointers;
 
   pointers.matrix = matrix;
 
-  // Memory GPU
-  //  Pointer for the Sparse Matrix stored in the COO_Matrix
   cudaMalloc(&pointers.matrix.row_p, nnz * sizeof(uint32_t));
   cudaMalloc(&pointers.matrix.col_p, nnz * sizeof(uint32_t));
-  cudaMalloc(&pointers.matrix.val_p, nnz * sizeof(double));
+  cudaMalloc(&pointers.matrix.val_p, nnz * sizeof(T));
 
-  cudaMalloc(&pointers.dense_vec, getCols() * sizeof(double));
-  cudaMalloc(&pointers.result, getCols() * sizeof(double));
+  cudaMalloc(&pointers.dense_vec, getCols() * sizeof(T));
+  cudaMalloc(&pointers.result, getCols() * sizeof(T));
 
-  // Copy
   cudaMemcpy(pointers.matrix.row_p, matrix.row_p, nnz * sizeof(uint32_t),
              cudaMemcpyHostToDevice);
   cudaMemcpy(pointers.matrix.col_p, matrix.col_p, nnz * sizeof(uint32_t),
              cudaMemcpyHostToDevice);
-  cudaMemcpy(pointers.matrix.val_p, matrix.val_p, nnz * sizeof(double),
+  cudaMemcpy(pointers.matrix.val_p, matrix.val_p, nnz * sizeof(T),
              cudaMemcpyHostToDevice);
 
-  cudaMemcpy(pointers.dense_vec, dense_vec, getCols() * sizeof(double),
+  cudaMemcpy(pointers.dense_vec, dense_vec, getCols() * sizeof(T),
              cudaMemcpyHostToDevice);
-  cudaMemset(pointers.result, 0, getCols() * sizeof(double));
+  cudaMemset(pointers.result, 0, getCols() * sizeof(T));
   return pointers;
 }
 
-std::vector<double> COO::gpu_retrive(const GPU_COO_Pointers &pointers) {
-  std::vector<double> result(getCols());
-  cudaMemcpy(result.data(), pointers.result, getCols() * sizeof(double),
+template <typename T>
+std::vector<T>
+COO<T>::gpu_retrive(const GPU_COO_Pointers &pointers) const {
+  std::vector<T> result(getCols());
+  cudaMemcpy(result.data(), pointers.result, getCols() * sizeof(T),
              cudaMemcpyDeviceToHost);
   return result;
 }
 
-void COO::gpu_free(const GPU_COO_Pointers &pointers) {
+template <typename T>
+void COO<T>::gpu_free(const GPU_COO_Pointers &pointers) {
   cudaFree(pointers.matrix.row_p);
   cudaFree(pointers.matrix.col_p);
   cudaFree(pointers.matrix.val_p);
@@ -127,8 +88,21 @@ void COO::gpu_free(const GPU_COO_Pointers &pointers) {
   cudaFree(pointers.dense_vec);
 }
 
-COO::~COO() {
+template <typename T> COO<T>::~COO() {
   free(matrix.val_p);
   free(matrix.col_p);
   free(matrix.row_p);
 }
+
+// Explicit instantiations. atomicAdd supports int, float, double (sm_60+).
+template class COO<int>;
+template class COO<float>;
+template class COO<double>;
+
+template __global__ void
+spmv_coo_kernel<int>(COO<int>::COO_Matrix, const int *, int *);
+template __global__ void
+spmv_coo_kernel<float>(COO<float>::COO_Matrix, const float *, float *);
+template __global__ void
+spmv_coo_kernel<double>(COO<double>::COO_Matrix, const double *,
+                        double *);

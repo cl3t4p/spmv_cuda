@@ -70,7 +70,7 @@ bool MatrixMarketLoader<T>::load(const std::string &path,
   }
 
   while (std::getline(ifs_mtx, line)) {
-    if (line.at(0) != '%') {
+    if (line.empty() || line[0] == '%') {
       break;
     }
   }
@@ -87,8 +87,9 @@ bool MatrixMarketLoader<T>::load(const std::string &path,
   int index = 0;
   while (std::getline(ifs_mtx, line)) {
     auto entry_info = split_line(line);
-    out.row_p[index] = std::stoull(entry_info[0]);
-    out.col_p[index] = std::stoull(entry_info[1]);
+    // MatrixMarket indices are 1-based; convert to 0-based.
+    out.row_p[index] = std::stoull(entry_info[0]) - 1;
+    out.col_p[index] = std::stoull(entry_info[1]) - 1;
     switch (field) {
     case Field::Real:
       out.val_p[index] = static_cast<T>(std::stod(entry_info[2]));

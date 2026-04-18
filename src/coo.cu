@@ -13,7 +13,7 @@ __global__ void spmv_coo_kernel(typename COO<T>::COO_Matrix matrix,
     const uint row = matrix.row_p[i];
     const uint col = matrix.col_p[i];
     const T val = matrix.val_p[i];
-    atomicAdd(&result[row - 1], val * dense_vec[col - 1]);
+    atomicAdd(&result[row], val * dense_vec[col]);
   }
 }
 
@@ -36,8 +36,8 @@ std::vector<T> COO<T>::cpu_compute(const std::vector<T> &dense_vec) const {
 #pragma omp parallel for schedule(static)
   for (uint32_t i = 0; i < matrix.nnz; i++) {
 #pragma omp atomic
-    result[matrix.row_p[i] - 1] +=
-        matrix.val_p[i] * dense_vec[matrix.col_p[i] - 1];
+    result[matrix.row_p[i]] +=
+        matrix.val_p[i] * dense_vec[matrix.col_p[i]];
   }
 
   return result;

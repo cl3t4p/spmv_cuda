@@ -15,6 +15,10 @@ template <typename T> class COO : public SparseMatrixGPU<T, COO_Matrix> {
     void gpu_compute(GPU_Pointers *pointers, uint grid_size,
                      uint blk_size) override;
     std::vector<T> gpu_retrive(const GPU_Pointers &pointers) override;
+
+    COO_Matrix<T> get_coo_matrix() override {
+        return this->matrix;
+    }
 };
 
 template <typename T>

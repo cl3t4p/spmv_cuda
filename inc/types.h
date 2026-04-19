@@ -39,7 +39,7 @@ class SparseMatrixGPU {
     using GPU_Pointers = T_GPU_Pointers<T, MatrixType>;
 
   protected:
-    MatrixType matrix;
+    MatrixType matrix = {};
 
   public:
     virtual ~SparseMatrixGPU() = default;
@@ -59,6 +59,8 @@ class SparseMatrixGPU {
     void gpu_free_result(GPU_Pointers *pointers) {
         cudaMemset(pointers->result, 0, getRows() * sizeof(T));
     }
+
+    virtual COO_Matrix<T> get_coo_matrix();
 
     [[nodiscard]] uint32_t getRows() const { return matrix.rows; }
     [[nodiscard]] uint32_t getCols() const { return matrix.cols; }

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "coo.cuh"
+#include "csr.cuh"
 #include "utils.h"
 
 template <typename Matrix, typename T> int run(const char *path) {
@@ -27,7 +28,7 @@ template <typename Matrix, typename T> int run(const char *path) {
 
     std::cout << "CPU : Compute" << std::endl;
     TIMER_START;
-    auto cpu_result = cpu_compute<T>(mat.getMatrix(), dense_vec);
+    auto cpu_result = cpu_compute<T>(mat.get_coo_matrix(), dense_vec);
     TIMER_STOP;
 
     cputime = TIMER_ELAPSED;
@@ -94,7 +95,7 @@ int run_by_format(const std::string &matrix_type, const char *path) {
         return run<COO<T>, T>(path);
     }
     if (matrix_type == "csr") {
-        std::cerr << "CSR not implemented yet" << std::endl;
+        return run<CSR<T>, T>(path);
         return 1;
     }
     std::cerr << "Unknown matrix type: " << matrix_type

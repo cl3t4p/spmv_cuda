@@ -7,9 +7,9 @@
 
 template <typename T> class CSR : public SparseMatrixGPU<T, CSR_Matrix> {
     using Base = SparseMatrixGPU<T, CSR_Matrix>;
-    using GPU_Pointers = typename Base::GPU_Pointers;\
+    using GPU_Pointers = typename Base::GPU_Pointers;
 
-private:
+  private:
     COO_Matrix<T> coo_matrix;
 
   public:
@@ -20,14 +20,11 @@ private:
     std::vector<T> gpu_retrive(const GPU_Pointers &pointers) override;
 
     void gpu_free(const GPU_Pointers &pointers) override;
-    void gpu_compute(GPU_Pointers *pointers, uint grid_size,
-                     uint blk_size) override;
+    void gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size) override;
 
     COO_Matrix<T> get_coo_matrix() override { return this->coo_matrix; }
 };
 
-template <typename T>
-__global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, const T *dense_vec,
-                                T *result);
+template <typename T> __global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result);
 
 #endif // SPMV_CSR_CUH

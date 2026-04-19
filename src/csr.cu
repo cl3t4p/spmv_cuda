@@ -6,9 +6,7 @@
 #include <iostream>
 #include <vector>
 
-template <typename T>
-__global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, const T *dense_vec,
-                                T *result) {
+template <typename T> __global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result) {
     uint row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row < matrix.rows) {
         T sum = 0;
@@ -21,11 +19,8 @@ __global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, const T *dense_vec,
     }
 }
 
-template <typename T>
-void CSR<T>::gpu_compute(GPU_Pointers *pointers, uint grid_size,
-                         uint blk_size) {
-    spmv_csr_kernel<T><<<grid_size, blk_size>>>(
-        pointers->matrix, pointers->dense_vec, pointers->result);
+template <typename T> void CSR<T>::gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size) {
+    spmv_csr_kernel<T><<<grid_size, blk_size>>>(pointers->matrix, pointers->dense_vec, pointers->result);
 }
 
 template <typename T> bool CSR<T>::load_from_file(const std::string &path) {
@@ -41,8 +36,7 @@ template <typename T> bool CSR<T>::load_from_file(const std::string &path) {
 
     // Histogram of nnz per row, written at index (row+1) so a prefix sum
     // turns it straight into row_ptr.
-    this->matrix.row_ptr = static_cast<uint32_t *>(
-        calloc(this->matrix.rows + 1, sizeof(uint32_t)));
+    this->matrix.row_ptr = static_cast<uint32_t *>(calloc(this->matrix.rows + 1, sizeof(uint32_t)));
     for (uint32_t i = 0; i < this->coo_matrix.nnz; i++) {
         this->matrix.row_ptr[this->coo_matrix.row_p[i] + 1]++;
     }
@@ -50,15 +44,11 @@ template <typename T> bool CSR<T>::load_from_file(const std::string &path) {
         this->matrix.row_ptr[i + 1] += this->matrix.row_ptr[i];
     }
 
-    this->matrix.col_idx =
-        static_cast<uint32_t *>(malloc(this->matrix.nnz * sizeof(uint32_t)));
+    this->matrix.col_idx = static_cast<uint32_t *>(malloc(this->matrix.nnz * sizeof(uint32_t)));
     this->matrix.val_p = static_cast<T *>(malloc(this->matrix.nnz * sizeof(T)));
 
-
-    auto offsets =
-        static_cast<uint32_t *>(malloc(this->matrix.rows * sizeof(uint32_t)));
-    std::memcpy(offsets, this->matrix.row_ptr,
-                this->matrix.rows * sizeof(uint32_t));
+    auto offsets = static_cast<uint32_t *>(malloc(this->matrix.rows * sizeof(uint32_t)));
+    std::memcpy(offsets, this->matrix.row_ptr, this->matrix.rows * sizeof(uint32_t));
 
     for (uint32_t i = 0; i < this->coo_matrix.nnz; i++) {
         const uint32_t row = this->coo_matrix.row_p[i];
@@ -71,38 +61,31 @@ template <typename T> bool CSR<T>::load_from_file(const std::string &path) {
     return true;
 }
 
-template <typename T>
-typename CSR<T>::GPU_Pointers CSR<T>::gpu_prep(const T *dense_vec) const {
+template <typename T> typename CSR<T>::GPU_Pointers CSR<T>::gpu_prep(const T *dense_vec) const {
     GPU_Pointers pointers;
     pointers.matrix = this->matrix;
 
-    cudaMalloc(&pointers.matrix.row_ptr,
-               (this->matrix.rows + 1) * sizeof(uint32_t));
+    cudaMalloc(&pointers.matrix.row_ptr, (this->matrix.rows + 1) * sizeof(uint32_t));
     cudaMalloc(&pointers.matrix.col_idx, this->matrix.nnz * sizeof(uint32_t));
     cudaMalloc(&pointers.matrix.val_p, this->matrix.nnz * sizeof(T));
 
     cudaMalloc(&pointers.dense_vec, this->matrix.cols * sizeof(T));
     cudaMalloc(&pointers.result, this->matrix.rows * sizeof(T));
 
-    cudaMemcpy(pointers.matrix.row_ptr, this->matrix.row_ptr,
-               (this->matrix.rows + 1) * sizeof(uint32_t),
+    cudaMemcpy(pointers.matrix.row_ptr, this->matrix.row_ptr, (this->matrix.rows + 1) * sizeof(uint32_t),
                cudaMemcpyHostToDevice);
-    cudaMemcpy(pointers.matrix.col_idx, this->matrix.col_idx,
-               this->matrix.nnz * sizeof(uint32_t), cudaMemcpyHostToDevice);
-    cudaMemcpy(pointers.matrix.val_p, this->matrix.val_p,
-               this->matrix.nnz * sizeof(T), cudaMemcpyHostToDevice);
+    cudaMemcpy(pointers.matrix.col_idx, this->matrix.col_idx, this->matrix.nnz * sizeof(uint32_t),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(pointers.matrix.val_p, this->matrix.val_p, this->matrix.nnz * sizeof(T), cudaMemcpyHostToDevice);
 
-    cudaMemcpy(pointers.dense_vec, dense_vec, this->matrix.cols * sizeof(T),
-               cudaMemcpyHostToDevice);
+    cudaMemcpy(pointers.dense_vec, dense_vec, this->matrix.cols * sizeof(T), cudaMemcpyHostToDevice);
     cudaMemset(pointers.result, 0, this->matrix.rows * sizeof(T));
     return pointers;
 }
 
-template <typename T>
-std::vector<T> CSR<T>::gpu_retrive(const GPU_Pointers &pointers) {
+template <typename T> std::vector<T> CSR<T>::gpu_retrive(const GPU_Pointers &pointers) {
     std::vector<T> result(this->matrix.rows);
-    cudaMemcpy(result.data(), pointers.result, this->matrix.rows * sizeof(T),
-               cudaMemcpyDeviceToHost);
+    cudaMemcpy(result.data(), pointers.result, this->matrix.rows * sizeof(T), cudaMemcpyDeviceToHost);
     return result;
 }
 
@@ -119,7 +102,7 @@ template <typename T> CSR<T>::~CSR() {
     free(this->matrix.col_idx);
     free(this->matrix.row_ptr);
 
-    //COO Matrix
+    // COO Matrix
     free(this->coo_matrix.row_p);
     free(this->coo_matrix.col_p);
     free(this->coo_matrix.val_p);
@@ -129,9 +112,6 @@ template class CSR<int>;
 template class CSR<float>;
 template class CSR<double>;
 
-template __global__ void spmv_csr_kernel<int>(CSR_Matrix<int>, const int *,
-                                              int *);
-template __global__ void spmv_csr_kernel<float>(CSR_Matrix<float>,
-                                                const float *, float *);
-template __global__ void spmv_csr_kernel<double>(CSR_Matrix<double>,
-                                                 const double *, double *);
+template __global__ void spmv_csr_kernel<int>(CSR_Matrix<int>, const int *, int *);
+template __global__ void spmv_csr_kernel<float>(CSR_Matrix<float>, const float *, float *);
+template __global__ void spmv_csr_kernel<double>(CSR_Matrix<double>, const double *, double *);

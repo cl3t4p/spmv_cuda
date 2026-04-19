@@ -81,16 +81,12 @@ template <typename Matrix, typename T> int run(const char *path) {
     printf("================================== Times and results of my code "
            "==================================\n");
     printf("Error between CPU and GPU is %lf\n", error);
-    printf("\nVector len = %d, CPU time = %5.3f\n", mat.getMatrix().nnz,
-           cputime);
-    printf(
-        "\nblk_size = %d, grd_size = %d, GPU time (gettimeofday): %5.3f sec\n",
-        blk_size, grd_size, gputime);
+    printf("\nVector len = %d, CPU time = %5.3f\n", mat.getMatrix().nnz, cputime);
+    printf("\nblk_size = %d, grd_size = %d, GPU time (gettimeofday): %5.3f sec\n", blk_size, grd_size, gputime);
     return 0;
 }
 
-template <typename T>
-int run_by_format(const std::string &matrix_type, const char *path) {
+template <typename T> int run_by_format(const std::string &matrix_type, const char *path) {
     if (matrix_type == "coo") {
         return run<COO<T>, T>(path);
     }
@@ -98,15 +94,13 @@ int run_by_format(const std::string &matrix_type, const char *path) {
         return run<CSR<T>, T>(path);
         return 1;
     }
-    std::cerr << "Unknown matrix type: " << matrix_type
-              << " (expected coo or csr)" << std::endl;
+    std::cerr << "Unknown matrix type: " << matrix_type << " (expected coo or csr)" << std::endl;
     return 1;
 }
 
 int main(int argc, char **argv) {
     if (argc < 4) {
-        std::cout << "Usage: " << argv[0] << " <dtype> <matrix_type> <file>"
-                  << std::endl;
+        std::cout << "Usage: " << argv[0] << " <dtype> <matrix_type> <file>" << std::endl;
         std::cout << "  dtype: int | float | double" << std::endl;
         std::cout << "  matrix_type: coo | csr" << std::endl;
         return 1;
@@ -123,8 +117,7 @@ int main(int argc, char **argv) {
     } else if (dtype == "double") {
         return run_by_format<double>(matrix_type, path);
     } else {
-        std::cerr << "Unknown dtype: " << dtype
-                  << " (expected int, float, or double)" << std::endl;
+        std::cerr << "Unknown dtype: " << dtype << " (expected int, float, or double)" << std::endl;
         return 1;
     }
 }

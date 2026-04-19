@@ -28,10 +28,8 @@ template <typename T> struct CSR_Matrix : BASE_Matrix {
     T *val_p;
 };
 
-template <typename T, template <typename> class MatrixFormat>
-class SparseMatrixGPU {
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float> ||
-                      std::is_same_v<T, double>,
+template <typename T, template <typename> class MatrixFormat> class SparseMatrixGPU {
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float> || std::is_same_v<T, double>,
                   "T must be int, float, or double");
 
   public:
@@ -49,16 +47,13 @@ class SparseMatrixGPU {
     // GPU Stuff
     virtual GPU_Pointers gpu_prep(const T *dense_vec) const;
 
-    virtual void gpu_compute(GPU_Pointers *pointers, uint grid_size,
-                             uint blk_size);
+    virtual void gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size);
 
     virtual std::vector<T> gpu_retrive(const GPU_Pointers &pointers);
 
     virtual void gpu_free(const GPU_Pointers &pointers);
 
-    void gpu_free_result(GPU_Pointers *pointers) {
-        cudaMemset(pointers->result, 0, getRows() * sizeof(T));
-    }
+    void gpu_free_result(GPU_Pointers *pointers) { cudaMemset(pointers->result, 0, getRows() * sizeof(T)); }
 
     virtual COO_Matrix<T> get_coo_matrix();
 

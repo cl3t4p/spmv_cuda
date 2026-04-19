@@ -12,17 +12,12 @@ template <typename T> class COO : public SparseMatrixGPU<T, COO_Matrix> {
     ~COO() override;
     GPU_Pointers gpu_prep(const T *dense_vec) const override;
     void gpu_free(const GPU_Pointers &pointers) override;
-    void gpu_compute(GPU_Pointers *pointers, uint grid_size,
-                     uint blk_size) override;
+    void gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size) override;
     std::vector<T> gpu_retrive(const GPU_Pointers &pointers) override;
 
-    COO_Matrix<T> get_coo_matrix() override {
-        return this->matrix;
-    }
+    COO_Matrix<T> get_coo_matrix() override { return this->matrix; }
 };
 
-template <typename T>
-__global__ void spmv_coo_kernel(COO_Matrix<T> matrix, const T *dense_vec,
-                                T *result);
+template <typename T> __global__ void spmv_coo_kernel(COO_Matrix<T> matrix, const T *dense_vec, T *result);
 
 #endif // SPMV_MATRIX_MARKET_H

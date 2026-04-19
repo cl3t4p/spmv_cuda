@@ -24,8 +24,7 @@ enum class Field { Real, Pattern, Integer, Complex };
 enum class Symmetry { General, Symmetric, SkewSymmetric };
 } // namespace
 
-template <typename T>
-bool MatrixMarketLoader<T>::load(const std::string &path, COO_Matrix<T> &out) {
+template <typename T> bool MatrixMarketLoader<T>::load(const std::string &path, COO_Matrix<T> &out) {
     auto ifs_mtx = std::ifstream(path);
     if (!ifs_mtx.is_open()) {
         std::cerr << "file " << path << " does not exists!" << std::endl;
@@ -105,8 +104,7 @@ bool MatrixMarketLoader<T>::load(const std::string &path, COO_Matrix<T> &out) {
     }
 
     if (out.nnz != static_cast<uint32_t>(index)) {
-        std::cerr << "nnz " << out.nnz << " size does not match matrix "
-                  << index << "!" << std::endl;
+        std::cerr << "nnz " << out.nnz << " size does not match matrix " << index << "!" << std::endl;
         return false;
     }
 
@@ -122,10 +120,8 @@ bool MatrixMarketLoader<T>::load(const std::string &path, COO_Matrix<T> &out) {
 
         // Because the matrix is symmetric then we need to copy the bottom
         // triangle
-        out.row_p = static_cast<uint32_t *>(
-            realloc(out.row_p, sizeof(uint32_t) * new_nnz));
-        out.col_p = static_cast<uint32_t *>(
-            realloc(out.col_p, sizeof(uint32_t) * new_nnz));
+        out.row_p = static_cast<uint32_t *>(realloc(out.row_p, sizeof(uint32_t) * new_nnz));
+        out.col_p = static_cast<uint32_t *>(realloc(out.col_p, sizeof(uint32_t) * new_nnz));
         out.val_p = static_cast<T *>(realloc(out.val_p, sizeof(T) * new_nnz));
 
         uint32_t idx = orig_nnz;
@@ -133,9 +129,7 @@ bool MatrixMarketLoader<T>::load(const std::string &path, COO_Matrix<T> &out) {
             if (out.row_p[i] != out.col_p[i]) {
                 out.row_p[idx] = out.col_p[i];
                 out.col_p[idx] = out.row_p[i];
-                out.val_p[idx] = (symmetry == Symmetry::SkewSymmetric)
-                                     ? static_cast<T>(-out.val_p[i])
-                                     : out.val_p[i];
+                out.val_p[idx] = (symmetry == Symmetry::SkewSymmetric) ? static_cast<T>(-out.val_p[i]) : out.val_p[i];
                 idx++;
             }
         }

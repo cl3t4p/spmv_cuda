@@ -1,4 +1,4 @@
-#include "csr.cuhr"
+#include "csr.cuh"
 #include "coo.cuh"
 #include "spm_loader.cuh"
 #include <cstdint>

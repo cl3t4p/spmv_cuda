@@ -20,9 +20,6 @@ template <typename Matrix, typename T> int run(const char *path) {
     }
     Matrix mat;
 
-
-
-
     std::cout << "loading coo matrix" << std::endl;
     if (!mat.load_from_coo(coo_matrix)) {
         std::cerr << "Error converting coo matrix" << std::endl;

@@ -21,13 +21,12 @@ template <typename T> bool COO<T>::load_from_coo(const COO_Matrix<T> &matrix) {
     this->matrix.rows = matrix.rows;
     this->matrix.cols = matrix.cols;
 
-
-    this->matrix.row_p = static_cast<uint32_t*>(malloc(sizeof(uint32_t) * matrix.nnz));
-    this->matrix.col_p = static_cast<uint32_t*>(malloc(sizeof(uint32_t) * matrix.nnz));
-    this->matrix.val_p = static_cast<T*>(malloc(sizeof(T) * matrix.nnz));
+    this->matrix.row_p = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * matrix.nnz));
+    this->matrix.col_p = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * matrix.nnz));
+    this->matrix.val_p = static_cast<T *>(malloc(sizeof(T) * matrix.nnz));
 
     if (this->matrix.row_p == NULL || this->matrix.col_p == NULL || this->matrix.row_p == NULL) {
-        std::cerr << "error in matrix malloc "<< std::endl;
+        std::cerr << "error in matrix malloc " << std::endl;
         return false;
     }
 

@@ -139,6 +139,12 @@ template <typename T> bool MatrixMarketLoader<T>::load(const std::string &path, 
     return true;
 }
 
+template <typename T> void MatrixMarketLoader<T>::free_matrix(const COO_Matrix<T> &matrix) {
+    free(matrix.val_p);
+    free(matrix.col_p);
+    free(matrix.row_p);
+}
+
 // Explicit instantiations — must match the types the static_assert in COO<T>
 // allows.
 template class MatrixMarketLoader<int>;

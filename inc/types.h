@@ -42,7 +42,7 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
   public:
     virtual ~SparseMatrixGPU() = default;
 
-    virtual bool load_from_file(const std::string &path) = 0;
+    virtual bool load_from_coo(const COO_Matrix<T> &matrix) = 0;
 
     // GPU Stuff
     virtual GPU_Pointers gpu_prep(const T *dense_vec) const;
@@ -54,8 +54,6 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
     virtual void gpu_free(const GPU_Pointers &pointers);
 
     void gpu_free_result(GPU_Pointers *pointers) { cudaMemset(pointers->result, 0, getRows() * sizeof(T)); }
-
-    virtual COO_Matrix<T> get_coo_matrix();
 
     [[nodiscard]] uint32_t getRows() const { return matrix.rows; }
     [[nodiscard]] uint32_t getCols() const { return matrix.cols; }

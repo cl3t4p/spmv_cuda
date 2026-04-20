@@ -7,17 +7,28 @@
 
 #include "coo.cuh"
 #include "csr.cuh"
+#include "spm_loader.cuh"
 #include "utils.h"
 
 template <typename Matrix, typename T> int run(const char *path) {
+    COO_Matrix<T> coo_matrix;
+
+    std::cout << "reading mtx file" << std::endl;
+    if (!MatrixMarketLoader<T>::load(path, coo_matrix)) {
+        std::cerr << "Error loading matrix from " << path << std::endl;
+        return -1;
+    }
     Matrix mat;
 
-    std::cout << "loading matrix" << std::endl;
-    if (!mat.load_from_file(path)) {
+
+
+
+    std::cout << "loading coo matrix" << std::endl;
+    if (!mat.load_from_coo(coo_matrix)) {
+        std::cerr << "Error converting coo matrix" << std::endl;
         return -1;
-    } else {
-        std::cout << "matrix loaded with success!" << std::endl;
     }
+    std::cout << "matrix loaded with success!" << std::endl;
 
     std::vector<T> dense_vec(mat.getRows(), static_cast<T>(1));
 
@@ -28,7 +39,7 @@ template <typename Matrix, typename T> int run(const char *path) {
 
     std::cout << "CPU : Compute" << std::endl;
     TIMER_START;
-    auto cpu_result = cpu_compute<T>(mat.get_coo_matrix(), dense_vec);
+    auto cpu_result = cpu_compute<T>(coo_matrix, dense_vec);
     TIMER_STOP;
 
     cputime = TIMER_ELAPSED;
@@ -84,6 +95,8 @@ template <typename Matrix, typename T> int run(const char *path) {
     printf("\nVector len = %d, CPU time = %5.3f\n", mat.getMatrix().nnz, cputime);
     printf("\nblk_size = %d, grd_size = %d, GPU time (gettimeofday): %5.3f sec\n", blk_size, grd_size, gputime);
     return 0;
+
+    MatrixMarketLoader<T>::free_matrix(coo_matrix);
 }
 
 template <typename T> int run_by_format(const std::string &matrix_type, const char *path) {
@@ -112,12 +125,13 @@ int main(int argc, char **argv) {
 
     if (dtype == "int") {
         return run_by_format<int>(matrix_type, path);
-    } else if (dtype == "float") {
-        return run_by_format<float>(matrix_type, path);
-    } else if (dtype == "double") {
-        return run_by_format<double>(matrix_type, path);
-    } else {
-        std::cerr << "Unknown dtype: " << dtype << " (expected int, float, or double)" << std::endl;
-        return 1;
     }
+    if (dtype == "float") {
+        return run_by_format<float>(matrix_type, path);
+    }
+    if (dtype == "double") {
+        return run_by_format<double>(matrix_type, path);
+    }
+    std::cerr << "Unknown dtype: " << dtype << " (expected int, float, or double)" << std::endl;
+    return 1;
 }

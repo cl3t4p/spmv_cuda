@@ -6,7 +6,8 @@
 
 template <typename T> class MatrixMarketLoader {
   public:
-    static auto load(const std::string &path, COO_Matrix<T> &out) -> bool;
+    static bool load(const std::string &path, COO_Matrix<T> &out);
+    static void free_matrix(const COO_Matrix<T> &matrix);
 };
 
 #endif // SPMV_CUDA_SPM_LOADER_CUH

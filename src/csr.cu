@@ -19,26 +19,18 @@ template <typename T> __global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, cons
     }
 }
 
-template <typename T> void CSR<T>::gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size) {
-    spmv_csr_kernel<T><<<grid_size, blk_size>>>(pointers->matrix, pointers->dense_vec, pointers->result);
-}
-
-template <typename T> bool CSR<T>::load_from_file(const std::string &path) {
+template <typename T> bool CSR<T>::load_from_coo(const COO_Matrix<T> &matrix) {
     // Reuse the MatrixMarket loader to build a COO, then convert.
 
-    if (!MatrixMarketLoader<T>::load(path, this->coo_matrix)) {
-        return false;
-    }
-
-    this->matrix.rows = this->coo_matrix.rows;
-    this->matrix.cols = this->coo_matrix.cols;
-    this->matrix.nnz = this->coo_matrix.nnz;
+    this->matrix.rows = matrix.rows;
+    this->matrix.cols = matrix.cols;
+    this->matrix.nnz = matrix.nnz;
 
     // Histogram of nnz per row, written at index (row+1) so a prefix sum
     // turns it straight into row_ptr.
     this->matrix.row_ptr = static_cast<uint32_t *>(calloc(this->matrix.rows + 1, sizeof(uint32_t)));
-    for (uint32_t i = 0; i < this->coo_matrix.nnz; i++) {
-        this->matrix.row_ptr[this->coo_matrix.row_p[i] + 1]++;
+    for (uint32_t i = 0; i < matrix.nnz; i++) {
+        this->matrix.row_ptr[matrix.row_p[i] + 1]++;
     }
     for (uint32_t i = 0; i < this->matrix.rows; i++) {
         this->matrix.row_ptr[i + 1] += this->matrix.row_ptr[i];
@@ -50,11 +42,11 @@ template <typename T> bool CSR<T>::load_from_file(const std::string &path) {
     auto offsets = static_cast<uint32_t *>(malloc(this->matrix.rows * sizeof(uint32_t)));
     std::memcpy(offsets, this->matrix.row_ptr, this->matrix.rows * sizeof(uint32_t));
 
-    for (uint32_t i = 0; i < this->coo_matrix.nnz; i++) {
-        const uint32_t row = this->coo_matrix.row_p[i];
+    for (uint32_t i = 0; i < matrix.nnz; i++) {
+        const uint32_t row = matrix.row_p[i];
         const uint32_t pos = offsets[row]++;
-        this->matrix.col_idx[pos] = this->coo_matrix.col_p[i];
-        this->matrix.val_p[pos] = this->coo_matrix.val_p[i];
+        this->matrix.col_idx[pos] = matrix.col_p[i];
+        this->matrix.val_p[pos] = matrix.val_p[i];
     }
 
     free(offsets);
@@ -101,11 +93,6 @@ template <typename T> CSR<T>::~CSR() {
     free(this->matrix.val_p);
     free(this->matrix.col_idx);
     free(this->matrix.row_ptr);
-
-    // COO Matrix
-    free(this->coo_matrix.row_p);
-    free(this->coo_matrix.col_p);
-    free(this->coo_matrix.val_p);
 }
 
 template class CSR<int>;

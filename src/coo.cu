@@ -2,6 +2,7 @@
 #include "spm_loader.cuh"
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -15,12 +16,25 @@ template <typename T> __global__ void spmv_coo_kernel(COO_Matrix<T> matrix, cons
     }
 }
 
-template <typename T> void COO<T>::gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size) {
-    spmv_coo_kernel<T><<<grid_size, blk_size>>>(pointers->matrix, pointers->dense_vec, pointers->result);
-}
+template <typename T> bool COO<T>::load_from_coo(const COO_Matrix<T> &matrix) {
+    this->matrix.nnz = matrix.nnz;
+    this->matrix.rows = matrix.rows;
+    this->matrix.cols = matrix.cols;
 
-template <typename T> bool COO<T>::load_from_file(const std::string &path) {
-    return MatrixMarketLoader<T>::load(path, this->matrix);
+
+    this->matrix.row_p = static_cast<uint32_t*>(malloc(sizeof(uint32_t) * matrix.nnz));
+    this->matrix.col_p = static_cast<uint32_t*>(malloc(sizeof(uint32_t) * matrix.nnz));
+    this->matrix.val_p = static_cast<T*>(malloc(sizeof(T) * matrix.nnz));
+
+    if (this->matrix.row_p == NULL || this->matrix.col_p == NULL || this->matrix.row_p == NULL) {
+        std::cerr << "error in matrix malloc "<< std::endl;
+        return false;
+    }
+
+    std::memcpy(this->matrix.row_p, matrix.row_p, sizeof(uint32_t) * matrix.nnz);
+    std::memcpy(this->matrix.col_p, matrix.col_p, sizeof(uint32_t) * matrix.nnz);
+    std::memcpy(this->matrix.val_p, matrix.val_p, sizeof(T) * matrix.nnz);
+    return true;
 }
 
 template <typename T> typename COO<T>::GPU_Pointers COO<T>::gpu_prep(const T *dense_vec) const {

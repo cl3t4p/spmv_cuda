@@ -6,12 +6,13 @@
 #include <vector>
 
 #include "coo.cuh"
+#include "coo_cusparse.cuh"
 #include "csr.cuh"
 #include "spm_loader.cuh"
 #include "utils.h"
 
 template <typename Matrix, typename T> int run(const char *path) {
-    COO_Matrix<T> coo_matrix;
+    COO_Matrix<T> coo_matrix{};
 
     std::cout << "reading mtx file" << std::endl;
     if (!MatrixMarketLoader<T>::load(path, coo_matrix)) {
@@ -102,9 +103,16 @@ template <typename T> int run_by_format(const std::string &matrix_type, const ch
     }
     if (matrix_type == "csr") {
         return run<CSR<T>, T>(path);
-        return 1;
     }
-    std::cerr << "Unknown matrix type: " << matrix_type << " (expected coo or csr)" << std::endl;
+    if (matrix_type == "coo_cusparse") {
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+            return run<COO_Cusparse<T>, T>(path);
+        } else {
+            std::cerr << "coo_cusparse only supports float and double" << std::endl;
+            return 1;
+        }
+    }
+    std::cerr << "Unknown matrix type: " << matrix_type << " (expected coo, csr, coo_cusparse)" << std::endl;
     return 1;
 }
 
@@ -112,7 +120,7 @@ int main(int argc, char **argv) {
     if (argc < 4) {
         std::cout << "Usage: " << argv[0] << " <dtype> <matrix_type> <file>" << std::endl;
         std::cout << "  dtype: int | float | double" << std::endl;
-        std::cout << "  matrix_type: coo | csr" << std::endl;
+        std::cout << "  matrix_type: coo | csr | coo_cusparse" << std::endl;
         return 1;
     }
 

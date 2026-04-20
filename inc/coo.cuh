@@ -1,5 +1,5 @@
-#ifndef SPMV_MATRIX_MARKET_H
-#define SPMV_MATRIX_MARKET_H
+#ifndef SPMV_CUDA_COO_CUH
+#define SPMV_CUDA_COO_CUH
 #include "types.h"
 #include <cstdint>
 
@@ -12,7 +12,7 @@ template <typename T> class COO : public SparseMatrixGPU<T, COO_Matrix> {
   public:
     bool load_from_coo(const COO_Matrix<T> &matrix) override;
     ~COO() override;
-    GPU_Pointers gpu_prep(const T *dense_vec) const override;
+    GPU_Pointers gpu_prep(const T *dense_vec) override;
     void gpu_free(const GPU_Pointers &pointers) override;
     std::vector<T> gpu_retrive(const GPU_Pointers &pointers) override;
 
@@ -21,4 +21,4 @@ template <typename T> class COO : public SparseMatrixGPU<T, COO_Matrix> {
     }
 };
 
-#endif // SPMV_MATRIX_MARKET_H
+#endif // SPMV_CUDA_COO_CUH

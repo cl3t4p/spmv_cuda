@@ -25,7 +25,7 @@ template <typename T> bool COO<T>::load_from_coo(const COO_Matrix<T> &matrix) {
     this->matrix.col_p = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * matrix.nnz));
     this->matrix.val_p = static_cast<T *>(malloc(sizeof(T) * matrix.nnz));
 
-    if (this->matrix.row_p == NULL || this->matrix.col_p == NULL || this->matrix.row_p == NULL) {
+    if (this->matrix.row_p == nullptr || this->matrix.col_p == nullptr || this->matrix.row_p == nullptr) {
         std::cerr << "error in matrix malloc " << std::endl;
         return false;
     }
@@ -36,7 +36,7 @@ template <typename T> bool COO<T>::load_from_coo(const COO_Matrix<T> &matrix) {
     return true;
 }
 
-template <typename T> typename COO<T>::GPU_Pointers COO<T>::gpu_prep(const T *dense_vec) const {
+template <typename T> typename COO<T>::GPU_Pointers COO<T>::gpu_prep(const T *dense_vec) {
     const uint32_t nnz = this->matrix.nnz;
     GPU_Pointers pointers;
 

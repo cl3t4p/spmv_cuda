@@ -53,7 +53,7 @@ template <typename T> bool CSR<T>::load_from_coo(const COO_Matrix<T> &matrix) {
     return true;
 }
 
-template <typename T> typename CSR<T>::GPU_Pointers CSR<T>::gpu_prep(const T *dense_vec) const {
+template <typename T> typename CSR<T>::GPU_Pointers CSR<T>::gpu_prep(const T *dense_vec) {
     GPU_Pointers pointers;
     pointers.matrix = this->matrix;
 

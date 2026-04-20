@@ -45,7 +45,7 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
     virtual bool load_from_coo(const COO_Matrix<T> &matrix) = 0;
 
     // GPU Stuff
-    virtual GPU_Pointers gpu_prep(const T *dense_vec) const;
+    virtual GPU_Pointers gpu_prep(const T *dense_vec);
 
     virtual void gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size);
 

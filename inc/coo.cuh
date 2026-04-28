@@ -10,7 +10,7 @@ template <typename T> class COO : public SparseMatrixGPU<T, COO_Matrix> {
     using GPU_Pointers = typename Base::GPU_Pointers;
 protected:
     void calculate_launch_config() override {
-        LaunchConfig cfg;
+        LaunchConfig cfg{};
         cfg.block_size  = 256;
         cfg.grid_size   = (this->matrix.nnz + cfg.block_size - 1) / cfg.block_size;
         cfg.shared_bytes = 0;

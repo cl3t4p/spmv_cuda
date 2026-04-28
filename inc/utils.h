@@ -52,9 +52,9 @@ template <typename T> double diff_vector(const std::vector<T> &a, const std::vec
 
 template <typename T> std::vector<T> cpu_compute(const COO_Matrix<T> &coo_matrix, const std::vector<T> &dense_vec) {
     std::vector<T> result(coo_matrix.rows, 0);
-//#pragma omp parallel for schedule(static)
+    // #pragma omp parallel for schedule(static)
     for (uint32_t i = 0; i < coo_matrix.nnz; i++) {
-//#pragma omp atomic
+        // #pragma omp atomic
         result[coo_matrix.row_p[i]] += coo_matrix.val_p[i] * dense_vec[coo_matrix.col_p[i]];
     }
     return result;

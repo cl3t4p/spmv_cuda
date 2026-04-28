@@ -25,9 +25,10 @@ template <typename T> __global__ void spmv_csr_vector_kernel(CSR_Matrix<T> matri
     const uint lane = tid & 31;
     uint row = warp_id;
 
-    if (row >= matrix.rows) return;
+    if (row >= matrix.rows)
+        return;
     const uint start = matrix.row_ptr[row];
-    const uint end   = matrix.row_ptr[row + 1];
+    const uint end = matrix.row_ptr[row + 1];
 
     T sum = 0;
     for (int k = start + lane; k < end; k += 32) {
@@ -37,9 +38,9 @@ template <typename T> __global__ void spmv_csr_vector_kernel(CSR_Matrix<T> matri
         sum += __shfl_down_sync(0xFFFFFFFF, sum, off);
     }
 
-    if (lane == 0) result[row] = sum;
+    if (lane == 0)
+        result[row] = sum;
 }
-
 
 template <typename T> bool CSR<T>::load_from_coo(const COO_Matrix<T> &matrix) {
     this->matrix.rows = matrix.rows;
@@ -122,7 +123,6 @@ template class CSR<double>;
 template __global__ void spmv_csr_scalar_kernel<int>(CSR_Matrix<int>, const int *, int *);
 template __global__ void spmv_csr_scalar_kernel<float>(CSR_Matrix<float>, const float *, float *);
 template __global__ void spmv_csr_scalar_kernel<double>(CSR_Matrix<double>, const double *, double *);
-
 
 template __global__ void spmv_csr_vector_kernel<int>(CSR_Matrix<int>, const int *, int *);
 template __global__ void spmv_csr_vector_kernel<float>(CSR_Matrix<float>, const float *, float *);

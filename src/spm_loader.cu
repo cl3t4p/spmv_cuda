@@ -97,7 +97,7 @@ template <typename T> bool MatrixMarketLoader<T>::load(const std::string &path, 
             out.val_p[index] = static_cast<T>(1);
             break;
         case Field::Complex:
-                // Maybe implement complex??
+            // Maybe implement complex??
             break;
         }
         index++;

@@ -48,7 +48,7 @@ template <typename Matrix, typename T> int run(const char *path) {
 
     uint blk_size = launch_config.block_size;
     uint grd_size = launch_config.grid_size;
-    //TODO For memory shared devices
+    // TODO For memory shared devices
     uint shared_size = launch_config.shared_bytes;
 
     auto gpu_pointers = mat.gpu_prep(dense_vec.data());

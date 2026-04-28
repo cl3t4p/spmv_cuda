@@ -31,7 +31,7 @@ template <typename T> struct CSR_Matrix : BASE_Matrix {
 struct LaunchConfig {
     uint grid_size;
     uint block_size;
-    size_t shared_bytes;   // 0 if the kernel uses no dynamic shared memory
+    size_t shared_bytes; // 0 if the kernel uses no dynamic shared memory
 };
 
 template <typename T, template <typename> class MatrixFormat> class SparseMatrixGPU {
@@ -62,10 +62,6 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
     virtual void gpu_free(const GPU_Pointers &pointers);
 
     void gpu_free_result(GPU_Pointers *pointers) { cudaMemset(pointers->result, 0, getRows() * sizeof(T)); }
-
-
-
-
 
     [[nodiscard]] LaunchConfig getLaunchConfig() {
         if (launch_config.grid_size == 0) {

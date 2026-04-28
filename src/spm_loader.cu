@@ -1,4 +1,3 @@
-#include "coo.cuh"
 #include "spm_loader.cuh"
 #include <cstdint>
 #include <cstdlib>
@@ -98,7 +97,8 @@ template <typename T> bool MatrixMarketLoader<T>::load(const std::string &path, 
             out.val_p[index] = static_cast<T>(1);
             break;
         case Field::Complex:
-            break; // unreachable: handled above
+                // Maybe implement complex??
+            break;
         }
         index++;
     }
@@ -118,8 +118,7 @@ template <typename T> bool MatrixMarketLoader<T>::load(const std::string &path, 
         }
         const uint32_t new_nnz = orig_nnz + extra;
 
-        // Because the matrix is symmetric then we need to copy the bottom
-        // triangle
+        // Because the matrix is symmetric then we need to copy the bottom triangle
         out.row_p = static_cast<uint32_t *>(realloc(out.row_p, sizeof(uint32_t) * new_nnz));
         out.col_p = static_cast<uint32_t *>(realloc(out.col_p, sizeof(uint32_t) * new_nnz));
         out.val_p = static_cast<T *>(realloc(out.val_p, sizeof(T) * new_nnz));
@@ -145,8 +144,7 @@ template <typename T> void MatrixMarketLoader<T>::free_matrix(const COO_Matrix<T
     free(matrix.row_p);
 }
 
-// Explicit instantiations — must match the types the static_assert in COO<T>
-// allows.
+// Allows certain types for now
 template class MatrixMarketLoader<int>;
 template class MatrixMarketLoader<float>;
 template class MatrixMarketLoader<double>;

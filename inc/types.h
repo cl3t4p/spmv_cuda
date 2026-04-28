@@ -28,6 +28,12 @@ template <typename T> struct CSR_Matrix : BASE_Matrix {
     T *val_p;
 };
 
+struct LaunchConfig {
+    uint grid_size = 0;
+    uint block_size = 0;
+    size_t shared_bytes = 0;   // 0 if the kernel uses no dynamic shared memory
+};
+
 template <typename T, template <typename> class MatrixFormat> class SparseMatrixGPU {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float> || std::is_same_v<T, double>,
                   "T must be int, float, or double");
@@ -38,6 +44,8 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
 
   protected:
     MatrixType matrix = {};
+    LaunchConfig launch_config = {};
+    virtual void calculate_launch_config() = 0;
 
   public:
     virtual ~SparseMatrixGPU() = default;
@@ -47,7 +55,7 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
     // GPU Stuff
     virtual GPU_Pointers gpu_prep(const T *dense_vec);
 
-    virtual void gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size);
+    virtual void gpu_compute(GPU_Pointers *, uint, uint) = 0;
 
     virtual std::vector<T> gpu_retrive(const GPU_Pointers &pointers);
 
@@ -55,6 +63,11 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
 
     void gpu_free_result(GPU_Pointers *pointers) { cudaMemset(pointers->result, 0, getRows() * sizeof(T)); }
 
+
+
+
+
+    [[nodiscard]] LaunchConfig getLaunchConfig() const { return launch_config; }
     [[nodiscard]] uint32_t getRows() const { return matrix.rows; }
     [[nodiscard]] uint32_t getCols() const { return matrix.cols; }
     [[nodiscard]] uint32_t getNnz() const { return matrix.nnz; }

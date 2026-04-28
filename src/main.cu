@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "coo.cuh"
-#include "coo_cusparse.cuh"
 #include "csr.cuh"
 #include "spm_loader.cuh"
 #include "utils.h"
@@ -89,7 +88,7 @@ template <typename Matrix, typename T> int run(const char *path) {
 
     printf("================================== Times and results of my code "
            "==================================\n");
-    printf("Error between CPU and GPU is %lf\n", error);
+    printf("Error between CPU and GPU is %.15e\n", error);
     printf("\nVector len = %d, CPU time = %5.3f\n", mat.getMatrix().nnz, cputime);
     printf("\nblk_size = %d, grd_size = %d, GPU time (gettimeofday): %5.3f sec\n", blk_size, grd_size, gputime);
     return 0;
@@ -97,30 +96,28 @@ template <typename Matrix, typename T> int run(const char *path) {
     MatrixMarketLoader<T>::free_matrix(coo_matrix);
 }
 
+const std::string s_matrix_type = "(coo | csr_scalar | csr_vec)";
+const std::string s_dtype = "(int | float | double)";
+
 template <typename T> int run_by_format(const std::string &matrix_type, const char *path) {
     if (matrix_type == "coo") {
         return run<COO<T>, T>(path);
     }
-    if (matrix_type == "csr") {
-        return run<CSR<T>, T>(path);
+    if (matrix_type == "csr_scalar") {
+        return run<CSR_Scalar<T>, T>(path);
     }
-    if (matrix_type == "coo_cusparse") {
-        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
-            return run<COO_Cusparse<T>, T>(path);
-        } else {
-            std::cerr << "coo_cusparse only supports float and double" << std::endl;
-            return 1;
-        }
+    if (matrix_type == "csr_vec") {
+        return run<CSR_Vector<T>, T>(path);
     }
-    std::cerr << "Unknown matrix type: " << matrix_type << " (expected coo, csr, coo_cusparse)" << std::endl;
+    std::cerr << "Unknown matrix type: " << matrix_type << s_matrix_type << std::endl;
     return 1;
 }
 
 int main(int argc, char **argv) {
     if (argc < 4) {
         std::cout << "Usage: " << argv[0] << " <dtype> <matrix_type> <file>" << std::endl;
-        std::cout << "  dtype: int | float | double" << std::endl;
-        std::cout << "  matrix_type: coo | csr | coo_cusparse" << std::endl;
+        std::cout << "  dtype: " << s_dtype << std::endl;
+        std::cout << "  matrix_type:" << s_matrix_type << std::endl;
         return 1;
     }
 

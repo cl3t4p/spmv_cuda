@@ -6,7 +6,7 @@
 #include <iostream>
 #include <vector>
 
-template <typename T> __global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result) {
+template <typename T> __global__ void spmv_csr_scalar_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result) {
     uint row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row < matrix.rows) {
         T sum = 0;
@@ -19,9 +19,29 @@ template <typename T> __global__ void spmv_csr_kernel(CSR_Matrix<T> matrix, cons
     }
 }
 
-template <typename T> bool CSR<T>::load_from_coo(const COO_Matrix<T> &matrix) {
-    // Reuse the MatrixMarket loader to build a COO, then convert.
+template <typename T> __global__ void spmv_csr_vector_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result) {
+    const uint tid = blockIdx.x * blockDim.x + threadIdx.x;
+    const uint warp_id = tid >> 5;
+    const uint lane = tid & 31;
+    uint row = warp_id;
 
+    if (row >= matrix.rows) return;
+    const uint start = matrix.row_ptr[row];
+    const uint end   = matrix.row_ptr[row + 1];
+
+    T sum = 0;
+    for (int k = start + lane; k < end; k += 32) {
+        sum += matrix.val_p[k] * dense_vec[matrix.col_idx[k]];
+    }
+    for (int off = 16; off > 0; off >>= 1) {
+        sum += __shfl_down_sync(0xFFFFFFFF, sum, off);
+    }
+
+    if (lane == 0) result[row] = sum;
+}
+
+
+template <typename T> bool CSR<T>::load_from_coo(const COO_Matrix<T> &matrix) {
     this->matrix.rows = matrix.rows;
     this->matrix.cols = matrix.cols;
     this->matrix.nnz = matrix.nnz;
@@ -99,6 +119,11 @@ template class CSR<int>;
 template class CSR<float>;
 template class CSR<double>;
 
-template __global__ void spmv_csr_kernel<int>(CSR_Matrix<int>, const int *, int *);
-template __global__ void spmv_csr_kernel<float>(CSR_Matrix<float>, const float *, float *);
-template __global__ void spmv_csr_kernel<double>(CSR_Matrix<double>, const double *, double *);
+template __global__ void spmv_csr_scalar_kernel<int>(CSR_Matrix<int>, const int *, int *);
+template __global__ void spmv_csr_scalar_kernel<float>(CSR_Matrix<float>, const float *, float *);
+template __global__ void spmv_csr_scalar_kernel<double>(CSR_Matrix<double>, const double *, double *);
+
+
+template __global__ void spmv_csr_vector_kernel<int>(CSR_Matrix<int>, const int *, int *);
+template __global__ void spmv_csr_vector_kernel<float>(CSR_Matrix<float>, const float *, float *);
+template __global__ void spmv_csr_vector_kernel<double>(CSR_Matrix<double>, const double *, double *);

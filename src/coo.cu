@@ -55,6 +55,7 @@ template <typename T> typename COO<T>::GPU_Pointers COO<T>::gpu_prep(const T *de
 
     cudaMemcpy(pointers.dense_vec, dense_vec, this->getCols() * sizeof(T), cudaMemcpyHostToDevice);
     cudaMemset(pointers.result, 0, this->getCols() * sizeof(T));
+    //Compute Kernel Parameters
     return pointers;
 }
 

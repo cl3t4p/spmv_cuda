@@ -28,7 +28,7 @@ template <typename T> class CSR_Scalar : public CSR<T> {
     using GPU_Pointers = typename Base::GPU_Pointers;
 protected:
     void calculate_launch_config() override {
-        LaunchConfig cfg;
+        LaunchConfig cfg{};
         cfg.block_size  = 256;
         cfg.grid_size   = (this->matrix.rows + cfg.block_size - 1) / cfg.block_size;
         cfg.shared_bytes = 0;
@@ -46,7 +46,7 @@ template <typename T> class CSR_Vector : public CSR<T> {
     using GPU_Pointers = typename Base::GPU_Pointers;
 protected:
     void calculate_launch_config() override {
-        LaunchConfig cfg;
+        LaunchConfig cfg{};
         cfg.block_size  = 128;
         cfg.grid_size   = (this->matrix.rows * 32 + cfg.block_size - 1) / cfg.block_size;
         cfg.shared_bytes = 0;

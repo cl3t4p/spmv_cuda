@@ -43,8 +43,13 @@ template <typename Matrix, typename T> int run(const char *path) {
 
     cudaDeviceProp props{};
     cudaGetDeviceProperties(&props, 0);
-    uint blk_size = std::min(128, props.maxThreadsPerBlock);
-    uint grd_size = (mat.getMatrix().nnz + blk_size - 1) / blk_size;
+
+    LaunchConfig launch_config = mat.getLaunchConfig();
+
+    uint blk_size = launch_config.block_size;
+    uint grd_size = launch_config.grid_size;
+    //TODO For memory shared devices
+    uint shared_size = launch_config.shared_bytes;
 
     auto gpu_pointers = mat.gpu_prep(dense_vec.data());
     std::cout << "GPU : Compute" << std::endl;

@@ -29,9 +29,9 @@ template <typename T> struct CSR_Matrix : BASE_Matrix {
 };
 
 struct LaunchConfig {
-    uint grid_size = 0;
-    uint block_size = 0;
-    size_t shared_bytes = 0;   // 0 if the kernel uses no dynamic shared memory
+    uint grid_size;
+    uint block_size;
+    size_t shared_bytes;   // 0 if the kernel uses no dynamic shared memory
 };
 
 template <typename T, template <typename> class MatrixFormat> class SparseMatrixGPU {
@@ -67,7 +67,12 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
 
 
 
-    [[nodiscard]] LaunchConfig getLaunchConfig() const { return launch_config; }
+    [[nodiscard]] LaunchConfig getLaunchConfig() {
+        if (launch_config.grid_size == 0) {
+            calculate_launch_config();
+        }
+        return launch_config;
+    }
     [[nodiscard]] uint32_t getRows() const { return matrix.rows; }
     [[nodiscard]] uint32_t getCols() const { return matrix.cols; }
     [[nodiscard]] uint32_t getNnz() const { return matrix.nnz; }

@@ -10,3 +10,5 @@ CMakeLists.txt
 data/
 #ide
 .idea/
+#report
+report/

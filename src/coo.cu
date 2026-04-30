@@ -47,14 +47,14 @@ template <typename T> typename COO<T>::GPU_Pointers COO<T>::gpu_prep(const T *de
     cudaMalloc(&pointers.matrix.val_p, nnz * sizeof(T));
 
     cudaMalloc(&pointers.dense_vec, this->getCols() * sizeof(T));
-    cudaMalloc(&pointers.result, this->getCols() * sizeof(T));
+    cudaMalloc(&pointers.result, this->getRows() * sizeof(T));
 
     cudaMemcpy(pointers.matrix.row_p, this->matrix.row_p, nnz * sizeof(uint32_t), cudaMemcpyHostToDevice);
     cudaMemcpy(pointers.matrix.col_p, this->matrix.col_p, nnz * sizeof(uint32_t), cudaMemcpyHostToDevice);
     cudaMemcpy(pointers.matrix.val_p, this->matrix.val_p, nnz * sizeof(T), cudaMemcpyHostToDevice);
 
     cudaMemcpy(pointers.dense_vec, dense_vec, this->getCols() * sizeof(T), cudaMemcpyHostToDevice);
-    cudaMemset(pointers.result, 0, this->getCols() * sizeof(T));
+    cudaMemset(pointers.result, 0, this->getRows() * sizeof(T));
     return pointers;
 }
 

@@ -28,7 +28,7 @@ template <typename Matrix, typename T> int run(const char *path) {
     }
     std::cout << "matrix loaded with success!" << std::endl;
 
-    std::vector<T> dense_vec(mat.getRows(), static_cast<T>(1));
+    std::vector<T> dense_vec(mat.getCols(), static_cast<T>(1));
 
     TIMER_DEF;
     std::vector<float> gpu_times;

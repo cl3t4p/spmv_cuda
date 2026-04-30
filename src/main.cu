@@ -7,6 +7,7 @@
 
 #include "coo.cuh"
 #include "csr.cuh"
+#include "ell.cuh"
 #include "spm_loader.cuh"
 #include "utils.h"
 
@@ -101,7 +102,7 @@ template <typename Matrix, typename T> int run(const char *path) {
     MatrixMarketLoader<T>::free_matrix(coo_matrix);
 }
 
-const std::string s_matrix_type = "(coo | csr_scalar | csr_vec)";
+const std::string s_matrix_type = "(coo | csr_scalar | csr_vec | ell)";
 const std::string s_dtype = "(int | float | double)";
 
 template <typename T> int run_by_format(const std::string &matrix_type, const char *path) {
@@ -113,6 +114,9 @@ template <typename T> int run_by_format(const std::string &matrix_type, const ch
     }
     if (matrix_type == "csr_vec") {
         return run<CSR_Vector<T>, T>(path);
+    }
+    if (matrix_type == "ell") {
+        return run <ELL<T>, T>(path);
     }
     std::cerr << "Unknown matrix type: " << matrix_type << s_matrix_type << std::endl;
     return 1;

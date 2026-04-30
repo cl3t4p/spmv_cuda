@@ -14,6 +14,15 @@ template <typename T> class ELL : public SparseMatrixGPU<T, ELL_Matrix> {
     using Base = SparseMatrixGPU<T, ELL_Matrix>;
     using GPU_Pointers = typename Base::GPU_Pointers;
 
+  protected:
+    void calculate_launch_config() override {
+        LaunchConfig cfg{};
+        cfg.block_size = 256;
+        cfg.grid_size = (this->matrix.rows + cfg.block_size - 1) / cfg.block_size;
+        cfg.shared_bytes = 0;
+        this->launch_config = cfg;
+    };
+
   public:
     bool load_from_coo(const COO_Matrix<T> &og_matrix) override;
     ~ELL() override;

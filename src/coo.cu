@@ -58,12 +58,6 @@ template <typename T> typename COO<T>::GPU_Pointers COO<T>::gpu_prep(const T *de
     return pointers;
 }
 
-template <typename T> std::vector<T> COO<T>::gpu_retrive(const GPU_Pointers &pointers) {
-    std::vector<T> result(this->getCols());
-    cudaMemcpy(result.data(), pointers.result, this->getCols() * sizeof(T), cudaMemcpyDeviceToHost);
-    return result;
-}
-
 template <typename T> void COO<T>::gpu_free(const GPU_Pointers &pointers) {
     cudaFree(pointers.matrix.row_p);
     cudaFree(pointers.matrix.col_p);

@@ -96,11 +96,7 @@ template <typename T> typename CSR<T>::GPU_Pointers CSR<T>::gpu_prep(const T *de
     return pointers;
 }
 
-template <typename T> std::vector<T> CSR<T>::gpu_retrive(const GPU_Pointers &pointers) {
-    std::vector<T> result(this->matrix.rows);
-    cudaMemcpy(result.data(), pointers.result, this->matrix.rows * sizeof(T), cudaMemcpyDeviceToHost);
-    return result;
-}
+
 
 template <typename T> void CSR<T>::gpu_free(const GPU_Pointers &pointers) {
     cudaFree(pointers.matrix.row_ptr);

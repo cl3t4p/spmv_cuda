@@ -1,7 +1,7 @@
 #ifndef SPMV_CUDA_SPM_LOADER_CUH
 #define SPMV_CUDA_SPM_LOADER_CUH
 
-#include "types.h"
+#include "types.cuh"
 #include <string>
 
 template <typename T> class MatrixMarketLoader {

@@ -57,9 +57,13 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
 
     virtual void gpu_compute(GPU_Pointers *, uint, uint) = 0;
 
-    virtual std::vector<T> gpu_retrive(const GPU_Pointers &pointers);
-
     virtual void gpu_free(const GPU_Pointers &pointers);
+
+    std::vector<T> gpu_retrive(const GPU_Pointers &pointers) {
+        std::vector<T> result(this->matrix.rows);
+        cudaMemcpy(result.data(), pointers.result, this->matrix.rows * sizeof(T), cudaMemcpyDeviceToHost);
+        return result;
+    }
 
     void gpu_free_result(GPU_Pointers *pointers) { cudaMemset(pointers->result, 0, getRows() * sizeof(T)); }
 

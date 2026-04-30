@@ -1,8 +1,7 @@
 #ifndef SPMV_CUDA_CSR_CUH
 #define SPMV_CUDA_CSR_CUH
-#include "types.h"
+#include "types.cuh"
 #include <sys/types.h>
-#include <vector>
 
 template <typename T> __global__ void spmv_csr_scalar_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result);
 template <typename T> __global__ void spmv_csr_vector_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result);
@@ -16,7 +15,6 @@ template <typename T> class CSR : public SparseMatrixGPU<T, CSR_Matrix> {
     bool load_from_coo(const COO_Matrix<T> &matrix) override;
     ~CSR() override;
     GPU_Pointers gpu_prep(const T *dense_vec) override;
-    std::vector<T> gpu_retrive(const GPU_Pointers &pointers) override;
     void gpu_free(const GPU_Pointers &pointers) override;
 };
 

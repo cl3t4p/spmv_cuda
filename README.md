@@ -4,10 +4,13 @@ A small CUDA project exploring **Sparse Matrix–Vector multiplication (SpMV)** 
 
 ## Supported formats
 
-- **COO** — coordinate list
-- **CSR (scalar)** — one thread per row
-- **CSR (vector)** — one warp per row
-- **ELL** — fixed-width row storage
+- **COO** (`coo`) — coordinate list
+- **COO optimized** (`coo_opt`) — coordinate list with a tuned reduction
+- **CSR scalar** (`csr_scalar`) — one thread per row
+- **CSR vector** (`csr_vec`) — one warp per row
+- **ELL** (`ell`) — fixed-width row storage
+- **cuSPARSE CSR** (`csr_cusparse`) — vendor reference (float/double only)
+- **cuSPARSE COO** (`coo_cusparse`) — vendor reference (float/double only)
 
 ## Build
 
@@ -27,7 +30,7 @@ xmake run spmv <dtype> <matrix_type> <file.mtx>
 
 | Argument | Values |
 |---|---|
-| `dtype` | `int`, `float`, `double` |
+| `dtype` | `int`, `float` |
 | `matrix_type` | `coo`, `csr_scalar`, `csr_vec`, `ell` |
 | `file.mtx` | Matrix Market file |
 

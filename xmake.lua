@@ -4,11 +4,11 @@ target("spmv")
     set_kind("binary")
     add_files("src/*.cpp")
     add_files("src/*.cu")
-    -- Force Ampere 8.0
     set_languages("c++17")
     add_cuflags("-std=c++17", {force = true})
     add_cuflags("-rdc=true", {force = true})
     add_culdflags("-rdc=true", {force = true})
+    --Force ampere for dev only
     add_cugencodes("sm_80")
     add_includedirs("inc/")
     add_headerfiles("inc/*.h", "inc/*.cuh")

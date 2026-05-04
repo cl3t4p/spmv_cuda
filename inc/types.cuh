@@ -35,8 +35,8 @@ struct LaunchConfig {
 };
 
 template <typename T, template <typename> class MatrixFormat> class SparseMatrixGPU {
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float> || std::is_same_v<T, double>,
-                  "T must be int, float, or double");
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float> ,
+                  "T must be int, float");
 
   public:
     using MatrixType = MatrixFormat<T>;
@@ -53,11 +53,11 @@ template <typename T, template <typename> class MatrixFormat> class SparseMatrix
     virtual bool load_from_coo(const COO_Matrix<T> &matrix) = 0;
 
     // GPU Stuff
-    virtual GPU_Pointers gpu_prep(const T *dense_vec);
+    virtual GPU_Pointers gpu_prep(const T *dense_vec) = 0;
 
     virtual void gpu_compute(GPU_Pointers *, uint, uint) = 0;
 
-    virtual void gpu_free(const GPU_Pointers &pointers);
+    virtual void gpu_free(const GPU_Pointers &pointers) = 0;
 
     std::vector<T> gpu_retrive(const GPU_Pointers &pointers) {
         std::vector<T> result(this->matrix.rows);

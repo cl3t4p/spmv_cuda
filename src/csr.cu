@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <vector>
 
 template <typename T> __global__ void spmv_csr_scalar_kernel(CSR_Matrix<T> matrix, const T *dense_vec, T *result) {
     uint row = blockIdx.x * blockDim.x + threadIdx.x;
@@ -96,8 +95,6 @@ template <typename T> typename CSR<T>::GPU_Pointers CSR<T>::gpu_prep(const T *de
     return pointers;
 }
 
-
-
 template <typename T> void CSR<T>::gpu_free(const GPU_Pointers &pointers) {
     cudaFree(pointers.matrix.row_ptr);
     cudaFree(pointers.matrix.col_idx);
@@ -114,12 +111,9 @@ template <typename T> CSR<T>::~CSR() {
 
 template class CSR<int>;
 template class CSR<float>;
-template class CSR<double>;
 
 template __global__ void spmv_csr_scalar_kernel<int>(CSR_Matrix<int>, const int *, int *);
 template __global__ void spmv_csr_scalar_kernel<float>(CSR_Matrix<float>, const float *, float *);
-template __global__ void spmv_csr_scalar_kernel<double>(CSR_Matrix<double>, const double *, double *);
 
 template __global__ void spmv_csr_vector_kernel<int>(CSR_Matrix<int>, const int *, int *);
 template __global__ void spmv_csr_vector_kernel<float>(CSR_Matrix<float>, const float *, float *);
-template __global__ void spmv_csr_vector_kernel<double>(CSR_Matrix<double>, const double *, double *);

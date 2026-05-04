@@ -4,7 +4,7 @@
 #include <cstdint>
 
 template <typename T> __global__ void spmv_coo_kernel(COO_Matrix<T> matrix, const T *dense_vec, T *result);
-template <typename T> __global__ void spmv_coo_optimized_kernel(COO_Matrix<T> matrix,const T *dense_vec, T *result);
+template <typename T> __global__ void spmv_coo_optimized_kernel(COO_Matrix<T> matrix, const T *dense_vec, T *result);
 
 template <typename T> class COO : public SparseMatrixGPU<T, COO_Matrix> {
     using Base = SparseMatrixGPU<T, COO_Matrix>;
@@ -30,16 +30,26 @@ template <typename T> class COO : public SparseMatrixGPU<T, COO_Matrix> {
     }
 };
 
-
-
 template <typename T> class COO_Optimized : public COO<T> {
     using Base = SparseMatrixGPU<T, COO_Matrix>;
     using GPU_Pointers = typename Base::GPU_Pointers;
-public:
-    void gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size) override {
-        spmv_coo_optimized_kernel<T><<<grid_size, blk_size>>>(pointers->matrix, pointers->dense_vec, pointers->result);
+
+  protected:
+    void calculate_launch_config() override {
+        LaunchConfig cfg{};
+        cfg.block_size = 256;
+        cfg.grid_size = (this->matrix.nnz + cfg.block_size - 1) / cfg.block_size;
+        cfg.shared_bytes = cfg.block_size * (sizeof(T) + sizeof(uint32_t));
+        this->launch_config = cfg;
     }
 
+  public:
+    bool load_from_coo(const COO_Matrix<T> &matrix) override;
 
+    void gpu_compute(GPU_Pointers *pointers, uint grid_size, uint blk_size) override {
+        const size_t smem = blk_size * (sizeof(T) + sizeof(uint32_t));
+        spmv_coo_optimized_kernel<T>
+            <<<grid_size, blk_size, smem>>>(pointers->matrix, pointers->dense_vec, pointers->result);
+    }
 };
 #endif // SPMV_CUDA_COO_CUH

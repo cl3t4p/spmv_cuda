@@ -90,11 +90,8 @@ template <typename T> void ELL<T>::gpu_free(const GPU_Pointers &pointers) {
     cudaFree(pointers.dense_vec);
 }
 
-
 template class ELL<int>;
 template class ELL<float>;
-template class ELL<double>;
 
 template __global__ void spmv_ell_kernel<int>(ELL_Matrix<int>, const int *, int *);
 template __global__ void spmv_ell_kernel<float>(ELL_Matrix<float>, const float *, float *);
-template __global__ void spmv_ell_kernel<double>(ELL_Matrix<double>, const double *, double *);

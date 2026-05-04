@@ -147,4 +147,3 @@ template <typename T> void MatrixMarketLoader<T>::free_matrix(const COO_Matrix<T
 // Allows certain types for now
 template class MatrixMarketLoader<int>;
 template class MatrixMarketLoader<float>;
-template class MatrixMarketLoader<double>;

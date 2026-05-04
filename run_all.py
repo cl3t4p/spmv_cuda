@@ -7,7 +7,8 @@ from pathlib import Path
 
 FORMATS = ["coo", "coo_opt", "csr_scalar", "csr_vec", "ell", "csr_cusparse", "coo_cusparse"]
 CUSPARSE_FORMATS = {"csr_cusparse", "coo_cusparse"}
-DTYPES = ["int", "float"]
+DTYPES = ["int", "float", "auto"]
+INT_FIELDS = {"pattern", "integer"}
 
 
 def find_matrices(data_dir: Path):
@@ -20,6 +21,16 @@ def find_matrices(data_dir: Path):
             if candidate.is_file():
                 matrices.append(candidate)
     return matrices
+
+
+def detect_dtype(mtx_path: Path) -> str:
+    with mtx_path.open() as f:
+        header = f.readline().strip().lower()
+    parts = header.split()
+    if len(parts) < 5 or not parts[0].startswith("%%matrixmarket"):
+        return "float"
+    field = parts[3]
+    return "int" if field in INT_FIELDS else "float"
 
 
 def submit(sbatch_script: Path, spmv_args: list[str]) -> str:
@@ -45,9 +56,9 @@ def main() -> int:
     p = argparse.ArgumentParser(description="Run spmv sbatch jobs sequentially over all matrices and formats.")
     p.add_argument("--data", type=Path, default=Path("data"), help="data folder (default: data)")
     p.add_argument("--sbatch", type=Path, default=Path("sbatch.sh"), help="sbatch script (default: sbatch.sh)")
-    p.add_argument("--dtype", default="float", choices=DTYPES, help="value type (default: float)")
+    p.add_argument("--dtype", default="auto", choices=DTYPES, help="value type; auto picks int for pattern/integer matrices, float otherwise (default: auto)")
     p.add_argument("--formats", nargs="+", default=FORMATS, choices=FORMATS, help="formats to run (default: all)")
-    p.add_argument("--conversion", action="store_true", help="pass --conversion to spmv")
+    p.add_argument("--conversion", action=argparse.BooleanOptionalAction, default=True, help="pass --conversion to spmv (default: enabled; use --no-conversion to disable)")
     p.add_argument("--poll", type=int, default=10, help="seconds between squeue polls (default: 10)")
     p.add_argument("--dry-run", action="store_true", help="print commands without submitting")
     args = p.parse_args()
@@ -67,12 +78,13 @@ def main() -> int:
     total = len(matrices) * len(args.formats)
     i = 0
     for m in matrices:
+        dtype = detect_dtype(m) if args.dtype == "auto" else args.dtype
         for fmt in args.formats:
             i += 1
-            if args.dtype == "int" and fmt in CUSPARSE_FORMATS:
-                print(f"[{i}/{total}] skipping {fmt} (cuSPARSE requires float/double)", flush=True)
+            if dtype == "int" and fmt in CUSPARSE_FORMATS:
+                print(f"[{i}/{total}] skipping {fmt} for {m.name} (cuSPARSE requires float/double)", flush=True)
                 continue
-            spmv_args = [args.dtype, fmt, str(m)]
+            spmv_args = [dtype, fmt, str(m)]
             if args.conversion:
                 spmv_args.append("--conversion")
 

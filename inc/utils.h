@@ -2,6 +2,7 @@
 #define SPMV_CUDA_UTILS_H
 #include <cmath>
 #include <cstdlib>
+#include <sys/time.h>
 #include <type_traits>
 #include <vector>
 
@@ -48,6 +49,24 @@ template <typename T> double diff_vector(const std::vector<T> &a, const std::vec
         result += std::abs(a[i] - b[i]);
     }
     return result / static_cast<double>(a.size());
+}
+
+template <typename Matrix, typename T>
+double time_conversion(const COO_Matrix<T> &coo, int warmup, int runs) {
+    TIMER_DEF;
+    for (int i = 0; i < warmup; ++i) {
+        Matrix tmp;
+        tmp.load_from_coo(coo);
+    }
+    double total = 0.0;
+    for (int i = 0; i < runs; ++i) {
+        Matrix tmp;
+        TIMER_START;
+        tmp.load_from_coo(coo);
+        TIMER_STOP;
+        total += TIMER_ELAPSED;
+    }
+    return (runs > 0) ? total / static_cast<double>(runs) : 0.0;
 }
 
 template <typename T> std::vector<T> cpu_compute(const COO_Matrix<T> &coo_matrix, const std::vector<T> &dense_vec) {

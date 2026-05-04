@@ -1,7 +1,5 @@
-#include <chrono>
 #include <cuda_runtime_api.h>
 #include <iostream>
-#include <numeric>
 #include <ostream>
 #include <string>
 #include <sys/time.h>
@@ -14,6 +12,7 @@
 #include "cusparse_spmv.cuh"
 #include "ell.cuh"
 #include "spm_loader.cuh"
+#include "stats.h"
 #include "utils.h"
 
 struct Args {
@@ -26,23 +25,6 @@ struct Args {
     int conv_warmup = 2;
     int conv_runs = 5;
 };
-
-template <typename Matrix, typename T> double time_conversion(const COO_Matrix<T> &coo, const Args &args) {
-    using clock = std::chrono::high_resolution_clock;
-    for (int i = 0; i < args.conv_warmup; ++i) {
-        Matrix tmp;
-        tmp.load_from_coo(coo);
-    }
-    double total = 0.0;
-    for (int i = 0; i < args.conv_runs; ++i) {
-        Matrix tmp;
-        const auto t0 = clock::now();
-        tmp.load_from_coo(coo);
-        const auto t1 = clock::now();
-        total += std::chrono::duration<double>(t1 - t0).count();
-    }
-    return total / args.conv_runs;
-}
 
 template <typename Matrix, typename T> int run(const Args &args) {
     COO_Matrix<T> coo_matrix{};
@@ -57,7 +39,7 @@ template <typename Matrix, typename T> int run(const Args &args) {
     if (args.measure_conversion) {
         std::cout << "timing COO -> " << args.matrix_type << " conversion (" << args.conv_warmup << " warmup, "
                   << args.conv_runs << " runs)" << std::endl;
-        conversion_time = time_conversion<Matrix, T>(coo_matrix, args);
+        conversion_time = time_conversion<Matrix, T>(coo_matrix, args.conv_warmup, args.conv_runs);
     }
 
     Matrix mat;
@@ -120,19 +102,24 @@ template <typename Matrix, typename T> int run(const Args &args) {
 
     cudaEventDestroy(start_event);
     cudaEventDestroy(stop_event);
-
+#if DEBUG
     std::cout << "Comparing" << std::endl;
 
     bool result = compare_vectors<T>(cpu_result, gpu_result);
-    error = diff_vector<T>(cpu_result, gpu_result);
+
 
     if (result) {
-        std::cout << "2 Vector are similar" << std::endl;
+//    std::cout << "2 Vector are similar" << std::endl;
     } else {
-        std::cout << "2 Vector not are similar!!!" << std::endl;
+  //      std::cout << "2 Vector not are similar!!!" << std::endl;
     }
+#endif
+    error = diff_vector<T>(cpu_result, gpu_result);
 
-    gputime = std::accumulate(gpu_times.begin(), gpu_times.end(), 0.0f) / gpu_times.size();
+    const double gpu_amean = arithmetic_mean(gpu_times);
+    const double gpu_gmean = geometric_mean(gpu_times);
+    const double gpu_sigma = stddev(gpu_times, gpu_amean);
+    gputime = static_cast<float>(gpu_amean);
 
     const double flops = 2.0 * static_cast<double>(mat.getMatrix().nnz);
     const double cpu_gflops = (cputime > 0.0) ? (flops / cputime) / 1e9 : 0.0;
@@ -140,10 +127,13 @@ template <typename Matrix, typename T> int run(const Args &args) {
 
     printf("================================== Times and results of my code "
            "==================================\n");
+    printf("dtype = %s, kernel = %s\n", args.dtype.c_str(), args.matrix_type.c_str());
     printf("Error between CPU and GPU is %.15e\n", error);
     printf("\nVector len = %d, CPU time = %5.3e sec, CPU GFlops = %5.3f\n", mat.getMatrix().nnz, cputime, cpu_gflops);
     printf("\nblk_size = %d, grd_size = %d, GPU time (cudaEvent): %5.3e sec, GPU GFlops = %5.3f\n", blk_size, grd_size,
            gputime, gpu_gflops);
+    printf("GPU stats over %d runs: arith_mean = %5.3e sec, geo_mean = %5.3e sec, stddev = %5.3e sec\n", args.gpu_runs,
+           gpu_amean, gpu_gmean, gpu_sigma);
     if (args.measure_conversion) {
         printf("\nCOO -> %s conversion time = %5.3e sec (mean of %d runs, %d warmup)\n", args.matrix_type.c_str(),
                conversion_time, args.conv_runs, args.conv_warmup);

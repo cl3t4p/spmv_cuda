@@ -6,11 +6,10 @@
 #include <cusparse.h>
 #include <type_traits>
 
-
 template <typename T> constexpr cudaDataType cusparse_value_type() {
     if constexpr (std::is_same_v<T, float>) {
         return CUDA_R_32F;
-    }else{
+    } else {
         return CUDA_R_32I;
     }
 }

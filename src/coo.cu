@@ -164,4 +164,3 @@ template __global__ void spmv_coo_kernel<float>(COO_Matrix<float>, const float *
 
 template __global__ void spmv_coo_optimized_kernel<int>(COO_Matrix<int>, const int *, int *);
 template __global__ void spmv_coo_optimized_kernel<float>(COO_Matrix<float>, const float *, float *);
-

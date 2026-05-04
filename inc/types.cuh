@@ -35,8 +35,7 @@ struct LaunchConfig {
 };
 
 template <typename T, template <typename> class MatrixFormat> class SparseMatrixGPU {
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float> ,
-                  "T must be int, float");
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>, "T must be int, float");
 
   public:
     using MatrixType = MatrixFormat<T>;

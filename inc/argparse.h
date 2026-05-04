@@ -21,9 +21,9 @@ struct Parser {
         std::string *out = nullptr;
     };
     struct Option {
-        std::string flag;            // e.g. "--conversion"
+        std::string flag; // e.g. "--conversion"
         std::string help;
-        bool is_flag = false;        // true: bool flag; false: takes a value
+        bool is_flag = false; // true: bool flag; false: takes a value
         bool *bool_out = nullptr;
         int *int_out = nullptr;
     };
@@ -45,13 +45,17 @@ struct Parser {
     }
 
     [[noreturn]] void usage_and_exit(int code, const std::string &err = "") const {
-        if (!err.empty()) std::cerr << "error: " << err << "\n\n";
+        if (!err.empty())
+            std::cerr << "error: " << err << "\n\n";
         std::ostream &o = code == 0 ? std::cout : std::cerr;
         o << "usage: " << prog;
-        for (const auto &p : positionals) o << " <" << p.name << ">";
-        if (!options.empty()) o << " [options]";
+        for (const auto &p : positionals)
+            o << " <" << p.name << ">";
+        if (!options.empty())
+            o << " [options]";
         o << "\n";
-        if (!description.empty()) o << "\n" << description << "\n";
+        if (!description.empty())
+            o << "\n" << description << "\n";
         if (!positionals.empty()) {
             o << "\npositional arguments:\n";
             for (const auto &p : positionals) {
@@ -59,7 +63,11 @@ struct Parser {
                 if (!p.choices.empty()) {
                     o << " {";
                     bool first = true;
-                    for (const auto &c : p.choices) { o << (first ? "" : ","); o << c; first = false; }
+                    for (const auto &c : p.choices) {
+                        o << (first ? "" : ",");
+                        o << c;
+                        first = false;
+                    }
                     o << "}";
                 }
                 o << "\n";
@@ -69,7 +77,8 @@ struct Parser {
             o << "\noptions:\n";
             for (const auto &opt : options) {
                 o << "  " << opt.flag;
-                if (!opt.is_flag) o << " <int>";
+                if (!opt.is_flag)
+                    o << " <int>";
                 o << "\t" << opt.help << "\n";
             }
             o << "  -h, --help\tshow this help and exit\n";
@@ -82,23 +91,30 @@ struct Parser {
         std::vector<std::string> positional_vals;
         for (int i = 1; i < argc; ++i) {
             std::string a = argv[i];
-            if (a == "-h" || a == "--help") usage_and_exit(0);
+            if (a == "-h" || a == "--help")
+                usage_and_exit(0);
             if (a.rfind("--", 0) == 0) {
                 bool matched = false;
                 for (auto &opt : options) {
-                    if (opt.flag != a) continue;
+                    if (opt.flag != a)
+                        continue;
                     matched = true;
                     if (opt.is_flag) {
                         *opt.bool_out = true;
                     } else {
-                        if (i + 1 >= argc) usage_and_exit(2, a + " requires a value");
+                        if (i + 1 >= argc)
+                            usage_and_exit(2, a + " requires a value");
                         std::string v = argv[++i];
-                        try { *opt.int_out = std::stoi(v); }
-                        catch (...) { usage_and_exit(2, a + " expects an integer, got '" + v + "'"); }
+                        try {
+                            *opt.int_out = std::stoi(v);
+                        } catch (...) {
+                            usage_and_exit(2, a + " expects an integer, got '" + v + "'");
+                        }
                     }
                     break;
                 }
-                if (!matched) usage_and_exit(2, "unknown option " + a);
+                if (!matched)
+                    usage_and_exit(2, "unknown option " + a);
             } else {
                 positional_vals.push_back(a);
             }

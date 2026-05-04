@@ -16,15 +16,12 @@
         }                                                                                                              \
     } while (0)
 
-
-
 template <typename T> struct AlphaBeta {
     static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
                   "cuSPARSE SpMV here is restricted to float/double");
     T alpha = static_cast<T>(1);
     T beta = static_cast<T>(0);
 };
-
 
 template <typename T> typename CSR_CuSparse<T>::GPU_Pointers CSR_CuSparse<T>::gpu_prep(const T *dense_vec) {
     GPU_Pointers pointers = CSR<T>::gpu_prep(dense_vec);
@@ -92,8 +89,9 @@ template <typename T> bool COO_CuSparse<T>::load_from_coo(const COO_Matrix<T> &m
     auto *row_p = this->matrix.row_p;
     auto *col_p = this->matrix.col_p;
     auto *val_p = this->matrix.val_p;
-    std::sort(perm.begin(), perm.end(),
-              [row_p, col_p](uint32_t a, uint32_t b) { return std::tie(row_p[a], col_p[a]) < std::tie(row_p[b], col_p[b]); });
+    std::sort(perm.begin(), perm.end(), [row_p, col_p](uint32_t a, uint32_t b) {
+        return std::tie(row_p[a], col_p[a]) < std::tie(row_p[b], col_p[b]);
+    });
 
     std::vector<uint32_t> r(nnz), c(nnz);
     std::vector<T> v(nnz);

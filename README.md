@@ -25,14 +25,25 @@ The build targets `sm_80` (Ampere), links against cuSPARSE, and uses OpenMP for 
 ## Usage
 
 ```
-xmake run spmv <dtype> <matrix_type> <file.mtx>
+xmake run spmv <dtype> <matrix_type> <file.mtx> [options]
 ```
 
 | Argument | Values |
 |---|---|
 | `dtype` | `int`, `float` |
-| `matrix_type` | `coo`, `csr_scalar`, `csr_vec`, `ell` |
+| `matrix_type` | `coo`, `coo_opt`, `csr_scalar`, `csr_vec`, `ell`, `csr_cusparse`, `coo_cusparse` |
 | `file.mtx` | Matrix Market file |
+
+Optional flags:
+
+| Flag | Description |
+|---|---|
+| `--seed <int>` | seed for the dense-vector RNG (default: random) |
+| `--conversion` | also time the COO → `matrix_type` host conversion |
+| `--gpu-warmup <int>` | GPU warmup launches (default 10) |
+| `--gpu-runs <int>` | GPU timed launches (default 100) |
+| `--conv-warmup <int>` | conversion warmup runs (default 2) |
+| `--conv-runs <int>` | conversion timed runs (default 5) |
 
 Example:
 
@@ -40,7 +51,7 @@ Example:
 xmake run spmv float csr_vec data/matrix.mtx
 ```
 
-Each run performs 10 warmup iterations followed by 100 timed iterations, then prints the CPU time, average GPU time, and the error between the two results.
+Each run performs the configured warmup and timed iterations, then prints the CPU time and GFlops, the GPU mean time and GFlops, arithmetic/geometric mean and standard deviation across runs, and the error between CPU and GPU results. With `--conversion`, the COO → target-format host conversion time is reported as well.
 
 ## Project layout
 

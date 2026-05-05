@@ -55,7 +55,7 @@ def wait_for(job_id: str, poll: int) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(description="Run spmv sbatch jobs sequentially over all matrices and formats.")
     p.add_argument("--data", type=Path, default=Path("data"), help="data folder (default: data)")
-    p.add_argument("--sbatch", type=Path, default=Path("sbatch.sh"), help="sbatch script (default: sbatch.sh)")
+    p.add_argument("--sbatch", type=Path, help="sbatch script")
     p.add_argument("--dtype", default="auto", choices=DTYPES, help="value type; auto picks int for pattern/integer matrices, float otherwise (default: auto)")
     p.add_argument("--formats", nargs="+", default=FORMATS, choices=FORMATS, help="formats to run (default: all)")
     p.add_argument("--conversion", action=argparse.BooleanOptionalAction, default=True, help="pass --conversion to spmv (default: enabled; use --no-conversion to disable)")

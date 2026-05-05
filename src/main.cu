@@ -24,6 +24,7 @@ struct Args {
     int gpu_runs = 100;
     int conv_warmup = 2;
     int conv_runs = 5;
+    int seed = -1; // -1 = pick a random seed via std::random_device
 };
 
 template <typename Matrix, typename T> int run(const Args &args) {
@@ -50,7 +51,9 @@ template <typename Matrix, typename T> int run(const Args &args) {
     }
     std::cout << "matrix loaded with success!" << std::endl;
 
-    std::vector<T> dense_vec(mat.getCols(), static_cast<T>(1));
+    int effective_seed = (args.seed < 0) ? static_cast<int>(std::random_device{}()) : args.seed;
+    std::cout << "dense vector seed = " << effective_seed << std::endl;
+    std::vector<T> dense_vec = generate_dense_vec<T>(mat.getCols(), effective_seed);
 
     TIMER_DEF;
     std::vector<float> gpu_times;
@@ -107,11 +110,10 @@ template <typename Matrix, typename T> int run(const Args &args) {
 
     bool result = compare_vectors<T>(cpu_result, gpu_result);
 
-
     if (result) {
-//    std::cout << "2 Vector are similar" << std::endl;
+        //    std::cout << "2 Vector are similar" << std::endl;
     } else {
-  //      std::cout << "2 Vector not are similar!!!" << std::endl;
+        //      std::cout << "2 Vector not are similar!!!" << std::endl;
     }
 #endif
     error = diff_vector<T>(cpu_result, gpu_result);
@@ -127,7 +129,8 @@ template <typename Matrix, typename T> int run(const Args &args) {
 
     printf("================================== Times and results of my code "
            "==================================\n");
-    printf("dtype = %s, kernel = %s\n", args.dtype.c_str(), args.matrix_type.c_str());
+    printf("dtype = %s, kernel = %s\n, mmt_input = %s\n", args.dtype.c_str(), args.matrix_type.c_str(),
+           args.path.c_str());
     printf("Error between CPU and GPU is %.15e\n", error);
     printf("\nVector len = %d, CPU time = %5.3e sec, CPU GFlops = %5.3f\n", mat.getMatrix().nnz, cputime, cpu_gflops);
     printf("\nblk_size = %d, grd_size = %d, GPU time (cudaEvent): %5.3e sec, GPU GFlops = %5.3f\n", blk_size, grd_size,
@@ -182,6 +185,7 @@ int main(int argc, char **argv) {
     p.add_positional("matrix_type", "storage format / kernel", args.matrix_type,
                      {"coo", "coo_opt", "csr_scalar", "csr_vec", "ell", "csr_cusparse", "coo_cusparse"});
     p.add_positional("file", "path to .mtx file", args.path);
+    p.add_int("--seed", "seed for the dense-vector RNG (default: random)", args.seed);
     p.add_flag("--conversion", "time the COO -> matrix_type host conversion and report it at the end",
                args.measure_conversion);
     p.add_int("--gpu-warmup", "GPU warmup launches (default 10)", args.gpu_warmup);

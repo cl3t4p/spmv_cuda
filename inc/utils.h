@@ -2,6 +2,7 @@
 #define SPMV_CUDA_UTILS_H
 #include <cmath>
 #include <cstdlib>
+#include <random>
 #include <sys/time.h>
 #include <type_traits>
 #include <vector>
@@ -51,8 +52,7 @@ template <typename T> double diff_vector(const std::vector<T> &a, const std::vec
     return result / static_cast<double>(a.size());
 }
 
-template <typename Matrix, typename T>
-double time_conversion(const COO_Matrix<T> &coo, int warmup, int runs) {
+template <typename Matrix, typename T> double time_conversion(const COO_Matrix<T> &coo, int warmup, int runs) {
     TIMER_DEF;
     for (int i = 0; i < warmup; ++i) {
         Matrix tmp;
@@ -77,6 +77,21 @@ template <typename T> std::vector<T> cpu_compute(const COO_Matrix<T> &coo_matrix
         result[coo_matrix.row_p[i]] += coo_matrix.val_p[i] * dense_vec[coo_matrix.col_p[i]];
     }
     return result;
+}
+
+template <typename T> std::vector<T> generate_dense_vec(uint len, int seed) {
+    std::vector<T> v(len);
+    std::mt19937 gen(static_cast<std::uint32_t>(seed));
+    if constexpr (std::is_same_v<T, int>) {
+        std::uniform_int_distribution dist(-10, 10);
+        for (uint i = 0; i < len; ++i)
+            v[i] = dist(gen);
+    } else {
+        std::uniform_real_distribution<T> dist(static_cast<T>(-1), static_cast<T>(1));
+        for (uint i = 0; i < len; ++i)
+            v[i] = dist(gen);
+    }
+    return v;
 }
 
 #endif // SPMV_CUDA_UTILS_H

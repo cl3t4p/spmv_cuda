@@ -60,6 +60,7 @@ def main() -> int:
     p.add_argument("--formats", nargs="+", default=FORMATS, choices=FORMATS, help="formats to run (default: all)")
     p.add_argument("--conversion", action=argparse.BooleanOptionalAction, default=True, help="pass --conversion to spmv (default: enabled; use --no-conversion to disable)")
     p.add_argument("--poll", type=int, default=10, help="seconds between squeue polls (default: 10)")
+    p.add_argument("--seed", type=int, default=42, help="dense-vector RNG seed passed to spmv (default: 42)")
     p.add_argument("--dry-run", action="store_true", help="print commands without submitting")
     args = p.parse_args()
 
@@ -84,7 +85,7 @@ def main() -> int:
             if dtype == "int" and fmt in CUSPARSE_FORMATS:
                 print(f"[{i}/{total}] skipping {fmt} for {m.name} (cuSPARSE requires float/double)", flush=True)
                 continue
-            spmv_args = [dtype, fmt, str(m)]
+            spmv_args = [dtype, fmt, str(m), "--seed", str(args.seed)]
             if args.conversion:
                 spmv_args.append("--conversion")
 

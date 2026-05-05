@@ -15,7 +15,6 @@
 #include "stats.h"
 #include "utils.h"
 
-
 template <typename Matrix, typename T> int run(const Args &args) {
     COO_Matrix<T> coo_matrix{};
 
@@ -96,7 +95,6 @@ template <typename Matrix, typename T> int run(const Args &args) {
     cudaEventDestroy(start_event);
     cudaEventDestroy(stop_event);
 
-
     error = diff_vector<T>(cpu_result, gpu_result);
 
     const double gpu_amean = arithmetic_mean(gpu_times);
@@ -108,20 +106,18 @@ template <typename Matrix, typename T> int run(const Args &args) {
     const double cpu_gflops = (cputime > 0.0) ? (flops / cputime) / 1e9 : 0.0;
     const double gpu_gflops = (gputime > 0.0) ? (flops / gputime) / 1e9 : 0.0;
 
-
-    printInfo(props,args,coo_matrix,launch_config);
+    printInfo(props, args, coo_matrix, launch_config);
     printf("================================== Timings Info "
            "==================================\n");
     printf("Error CPU vs GPU         : %.15e\n", error);
-    printf("CPU time                 : %5.3e sec   (CPU GFlops = %5.3f, single-shot reference)\n",
-           cputime, cpu_gflops);
+    printf("CPU time                 : %5.3e sec   (CPU GFlops = %5.3f, single-shot reference)\n", cputime, cpu_gflops);
     printf("GPU time (arith mean)    : %5.3e sec   (GPU GFlops = %5.3f)\n", gputime, gpu_gflops);
-    printf("GPU stats over %d runs   : amean = %5.3e sec, gmean = %5.3e sec, stddev = %5.3e sec\n",
-           args.gpu_runs, gpu_amean, gpu_gmean, gpu_sigma);
+    printf("GPU stats over %d runs   : amean = %5.3e sec, gmean = %5.3e sec, stddev = %5.3e sec\n", args.gpu_runs,
+           gpu_amean, gpu_gmean, gpu_sigma);
     if (args.measure_conversion) {
         const double conv_ratio = (gputime > 0.0) ? conversion_time / gputime : 0.0;
-        printf("COO -> %s conv time      : %5.3e sec (mean of %d runs, %d warmup)\n",
-               args.matrix_type.c_str(), conversion_time, args.conv_runs, args.conv_warmup);
+        printf("COO -> %s conv time      : %5.3e sec (mean of %d runs, %d warmup)\n", args.matrix_type.c_str(),
+               conversion_time, args.conv_runs, args.conv_warmup);
         printf("Conv / SpMV ratio        : %.1f   (iterations to amortize conversion)\n", conv_ratio);
     }
     return 0;

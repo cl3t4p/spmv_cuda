@@ -28,7 +28,8 @@ struct Args {
 };
 
 template <typename T> double diff_vector(const std::vector<T> &a, const std::vector<T> &b) {
-    if (a.size() != b.size()) return -1;
+    if (a.size() != b.size())
+        return -1;
     double num = 0.0, den = 0.0;
     for (size_t i = 0; i < a.size(); ++i) {
         num += std::abs(static_cast<double>(a[i]) - static_cast<double>(b[i]));
@@ -36,7 +37,6 @@ template <typename T> double diff_vector(const std::vector<T> &a, const std::vec
     }
     return den > 0.0 ? num / den : num;
 }
-
 
 template <typename Matrix, typename T> double time_conversion(const COO_Matrix<T> &coo, int warmup, int runs) {
     TIMER_DEF;
@@ -57,9 +57,9 @@ template <typename Matrix, typename T> double time_conversion(const COO_Matrix<T
 
 template <typename T> std::vector<T> cpu_compute(const COO_Matrix<T> &coo_matrix, const std::vector<T> &dense_vec) {
     std::vector<T> result(coo_matrix.rows, 0);
-     #pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
     for (uint32_t i = 0; i < coo_matrix.nnz; i++) {
-        #pragma omp atomic
+#pragma omp atomic
         result[coo_matrix.row_p[i]] += coo_matrix.val_p[i] * dense_vec[coo_matrix.col_p[i]];
     }
     return result;
@@ -88,7 +88,7 @@ void printInfo(cudaDeviceProp props, const Args &args, const COO_Matrix<T> &mat,
     uint cols = mat.cols;
     uint rows = mat.rows;
 
-    //Peak theoretical memory bandwidth in GB/s, from device properties.
+    // Peak theoretical memory bandwidth in GB/s, from device properties.
     int mem_clock_khz = 0;
     cudaDeviceGetAttribute(&mem_clock_khz, cudaDevAttrMemoryClockRate, 0);
     const double clock_hz = static_cast<double>(mem_clock_khz) * 1e3;
@@ -104,6 +104,8 @@ void printInfo(cudaDeviceProp props, const Args &args, const COO_Matrix<T> &mat,
     printf("Launch      : blk_size = %u, grd_size = %u, ", l_conf.block_size, l_conf.grid_size);
     if (l_conf.shared_bytes > 0) {
         printf("shared : %lu bytes\n", l_conf.shared_bytes);
+    } else {
+        printf("\n");
     }
 }
 #endif // SPMV_CUDA_UTILS_H

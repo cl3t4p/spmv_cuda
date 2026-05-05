@@ -9,7 +9,7 @@ target("spmv")
     add_cuflags("-rdc=true", {force = true})
     add_culdflags("-rdc=true", {force = true})
     --Force ampere for dev only
-    add_cugencodes("sm_80")
+    --add_cugencodes("sm_80")
     add_includedirs("inc/")
     add_headerfiles("inc/*.h", "inc/*.cuh")
     add_cxflags("-fopenmp")

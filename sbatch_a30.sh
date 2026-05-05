@@ -8,8 +8,8 @@
 #SBATCH --time=00:05:00
 
 #SBATCH --job-name=spmv_cuda
-#SBATCH --output=output/spmv_cuda-%j.out
-#SBATCH --error=output/spmv_cuda-%j.err
+#SBATCH --output=output_a30/spmv_cuda-%j.out
+#SBATCH --error=output_a30/spmv_cuda-%j.err
 
 module load CUDA/11.8.0
 

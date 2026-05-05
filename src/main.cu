@@ -15,22 +15,11 @@
 #include "stats.h"
 #include "utils.h"
 
-struct Args {
-    std::string dtype;
-    std::string matrix_type;
-    std::string path;
-    bool measure_conversion = false;
-    int gpu_warmup = 10;
-    int gpu_runs = 100;
-    int conv_warmup = 2;
-    int conv_runs = 5;
-    int seed = -1; // -1 = pick a random seed via std::random_device
-};
 
 template <typename Matrix, typename T> int run(const Args &args) {
     COO_Matrix<T> coo_matrix{};
 
-    std::cout << "reading mtx file" << std::endl;
+    std::cout << "reading mtx file : " << args.path << std::endl;
     if (!MatrixMarketLoader<T>::load(args.path, coo_matrix)) {
         std::cerr << "Error loading matrix from " << args.path << std::endl;
         return -1;
@@ -44,21 +33,22 @@ template <typename Matrix, typename T> int run(const Args &args) {
     }
 
     Matrix mat;
-    std::cout << "loading coo matrix" << std::endl;
+    std::cout << "matrix conversion COO -> " << args.matrix_type << std::endl;
     if (!mat.load_from_coo(coo_matrix)) {
         std::cerr << "Error converting coo matrix" << std::endl;
         return -1;
     }
     std::cout << "matrix loaded with success!" << std::endl;
 
+    // Generate random seed if is -1
     int effective_seed = (args.seed < 0) ? static_cast<int>(std::random_device{}()) : args.seed;
     std::cout << "dense vector seed = " << effective_seed << std::endl;
     std::vector<T> dense_vec = generate_dense_vec<T>(mat.getCols(), effective_seed);
 
     TIMER_DEF;
     std::vector<float> gpu_times;
-    float cputime, gputime;
-    double error;
+    float cputime = 0.0f, gputime = 0.0f;
+    double error = 0.0;
 
     std::cout << "CPU : Compute" << std::endl;
     TIMER_START;
@@ -105,17 +95,8 @@ template <typename Matrix, typename T> int run(const Args &args) {
 
     cudaEventDestroy(start_event);
     cudaEventDestroy(stop_event);
-#if DEBUG
-    std::cout << "Comparing" << std::endl;
 
-    bool result = compare_vectors<T>(cpu_result, gpu_result);
 
-    if (result) {
-        //    std::cout << "2 Vector are similar" << std::endl;
-    } else {
-        //      std::cout << "2 Vector not are similar!!!" << std::endl;
-    }
-#endif
     error = diff_vector<T>(cpu_result, gpu_result);
 
     const double gpu_amean = arithmetic_mean(gpu_times);
@@ -127,19 +108,21 @@ template <typename Matrix, typename T> int run(const Args &args) {
     const double cpu_gflops = (cputime > 0.0) ? (flops / cputime) / 1e9 : 0.0;
     const double gpu_gflops = (gputime > 0.0) ? (flops / gputime) / 1e9 : 0.0;
 
-    printf("================================== Times and results of my code "
+
+    printInfo(props,args,coo_matrix,launch_config);
+    printf("================================== Timings Info "
            "==================================\n");
-    printf("dtype = %s, kernel = %s\n, mmt_input = %s\n", args.dtype.c_str(), args.matrix_type.c_str(),
-           args.path.c_str());
-    printf("Error between CPU and GPU is %.15e\n", error);
-    printf("\nVector len = %d, CPU time = %5.3e sec, CPU GFlops = %5.3f\n", mat.getMatrix().nnz, cputime, cpu_gflops);
-    printf("\nblk_size = %d, grd_size = %d, GPU time (cudaEvent): %5.3e sec, GPU GFlops = %5.3f\n", blk_size, grd_size,
-           gputime, gpu_gflops);
-    printf("GPU stats over %d runs: arith_mean = %5.3e sec, geo_mean = %5.3e sec, stddev = %5.3e sec\n", args.gpu_runs,
-           gpu_amean, gpu_gmean, gpu_sigma);
+    printf("Error CPU vs GPU         : %.15e\n", error);
+    printf("CPU time                 : %5.3e sec   (CPU GFlops = %5.3f, single-shot reference)\n",
+           cputime, cpu_gflops);
+    printf("GPU time (arith mean)    : %5.3e sec   (GPU GFlops = %5.3f)\n", gputime, gpu_gflops);
+    printf("GPU stats over %d runs   : amean = %5.3e sec, gmean = %5.3e sec, stddev = %5.3e sec\n",
+           args.gpu_runs, gpu_amean, gpu_gmean, gpu_sigma);
     if (args.measure_conversion) {
-        printf("\nCOO -> %s conversion time = %5.3e sec (mean of %d runs, %d warmup)\n", args.matrix_type.c_str(),
-               conversion_time, args.conv_runs, args.conv_warmup);
+        const double conv_ratio = (gputime > 0.0) ? conversion_time / gputime : 0.0;
+        printf("COO -> %s conv time      : %5.3e sec (mean of %d runs, %d warmup)\n",
+               args.matrix_type.c_str(), conversion_time, args.conv_runs, args.conv_warmup);
+        printf("Conv / SpMV ratio        : %.1f   (iterations to amortize conversion)\n", conv_ratio);
     }
     return 0;
 }
@@ -181,7 +164,7 @@ int main(int argc, char **argv) {
     Args args;
     argparse::Parser p;
     p.description = "SpMV CUDA benchmark.";
-    p.add_positional("dtype", "value type", args.dtype, {"int", "float", "double"});
+    p.add_positional("dtype", "value type", args.dtype, {"int", "float"});
     p.add_positional("matrix_type", "storage format / kernel", args.matrix_type,
                      {"coo", "coo_opt", "csr_scalar", "csr_vec", "ell", "csr_cusparse", "coo_cusparse"});
     p.add_positional("file", "path to .mtx file", args.path);

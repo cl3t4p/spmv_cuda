@@ -16,6 +16,7 @@
         }                                                                                                              \
     } while (0)
 
+// For type conversion
 template <typename T> struct AlphaBeta {
     static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
                   "cuSPARSE SpMV here is restricted to float/double");

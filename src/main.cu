@@ -63,6 +63,11 @@ template <typename Matrix, typename T> int run(const Args &args) {
     cudaDeviceProp props{};
     cudaGetDeviceProperties(&props, 0);
 
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(err)); std::exit(1);
+    }
+
     LaunchConfig launch_config = mat.getLaunchConfig();
 
     uint blk_size = launch_config.block_size;

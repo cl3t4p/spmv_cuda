@@ -106,6 +106,11 @@ template <typename Matrix, typename T> int run(const Args &args) {
     const double cpu_gflops = (cputime > 0.0) ? (flops / cputime) / 1e9 : 0.0;
     const double gpu_gflops = (gputime > 0.0) ? (flops / gputime) / 1e9 : 0.0;
 
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(err)); std::exit(1);
+    }
+
     printInfo(props, args, coo_matrix, launch_config);
     printf("================================== Timings Info "
            "==================================\n");

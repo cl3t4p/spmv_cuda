@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# xmakew — gradlew-style wrapper for xmake.
+#
+# Behaviour:
+#   1. If `xmake` is in PATH, exec it (unless XMAKEW_FORCE_LOCAL=1).
+#   2. Otherwise, download + build the pinned release from GitHub into
+#      <repo>/.xmakew/<version>, then exec that.
+#
+# Configuration (env vars):
+#   XMAKE_VERSION       release tag to install   (default: v3.0.8)
+#   XMAKE_SHA256        expected SHA256 of the source tarball
+#   XMAKEW_DIR          install root             (default: <repo>/.xmakew)
+#   XMAKEW_FORCE_LOCAL  if non-empty, ignore system xmake and use the local one
+
+set -euo pipefail
+
+XMAKE_VERSION="${XMAKE_VERSION:-v3.0.8}"
+XMAKE_SHA256="${XMAKE_SHA256:-5bf5d58230ed78d87b9919a0a654d0ebcdad221426bd610ad4f740029bb61c84}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+XMAKEW_DIR="${XMAKEW_DIR:-$SCRIPT_DIR/.xmakew}"
+INSTALL_DIR="$XMAKEW_DIR/$XMAKE_VERSION"
+LOCAL_XMAKE="$INSTALL_DIR/bin/xmake"
+
+if [[ -z "${XMAKEW_FORCE_LOCAL:-}" ]] && command -v xmake >/dev/null 2>&1; then
+    exec xmake "$@"
+fi
+
+if [[ ! -x "$LOCAL_XMAKE" ]]; then
+    echo "xmakew: xmake not in PATH; installing $XMAKE_VERSION into $INSTALL_DIR" >&2
+
+    missing=()
+    for cmd in curl tar make cc sha256sum; do
+        command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "xmakew: missing required tools: ${missing[*]}" >&2
+        exit 1
+    fi
+
+    if [[ -z "$XMAKE_SHA256" ]]; then
+        echo "xmakew: XMAKE_SHA256 is empty; refusing to install without integrity check" >&2
+        exit 1
+    fi
+
+    tmpdir=$(mktemp -d -t xmakew.XXXXXX)
+    trap 'rm -rf "$tmpdir"' EXIT
+
+    archive="$tmpdir/xmake.tar.gz"
+    url="https://github.com/xmake-io/xmake/releases/download/${XMAKE_VERSION}/xmake-${XMAKE_VERSION}.tar.gz"
+
+    echo "xmakew: downloading $url" >&2
+    curl -fSL --retry 3 -o "$archive" "$url"
+
+    actual_sha256=$(sha256sum "$archive" | awk '{print $1}')
+    if [[ "$actual_sha256" != "$XMAKE_SHA256" ]]; then
+        echo "xmakew: SHA256 mismatch for $url" >&2
+        echo "  expected: $XMAKE_SHA256" >&2
+        echo "  actual:   $actual_sha256" >&2
+        exit 1
+    fi
+    echo "xmakew: sha256 ok ($actual_sha256)" >&2
+
+    src="$tmpdir/src"
+    mkdir -p "$src"
+    tar -xzf "$archive" -C "$src" --strip-components=1
+
+    mkdir -p "$INSTALL_DIR"
+    (
+        cd "$src"
+        ./configure
+        make -j"$(nproc 2>/dev/null || echo 4)" build
+        make install prefix="$INSTALL_DIR"
+    )
+
+    echo "xmakew: installed $XMAKE_VERSION into $INSTALL_DIR" >&2
+fi
+
+exec "$LOCAL_XMAKE" "$@"

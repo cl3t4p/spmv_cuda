@@ -1,5 +1,6 @@
 # Xmake cache
 .xmake/
+.xmakew/
 build/
 compile_commands.json
 .cache/

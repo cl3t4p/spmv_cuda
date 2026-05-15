@@ -12,20 +12,28 @@ A small CUDA project exploring **Sparse Matrix–Vector multiplication (SpMV)** 
 - **cuSPARSE CSR** (`csr_cusparse`) — vendor reference (float/double only)
 - **cuSPARSE COO** (`coo_cusparse`) — vendor reference (float/double only)
 
+## Prerequisites
+
+Fetch the SuiteSparse matrices before building or running anything:
+
+```
+./download_data.sh
+```
+
+This populates `data/` with the 10 matrices used in the deliverable (existing ones are skipped).
+
 ## Build
 
-Built with [xmake](https://xmake.io):
+Built with [xmake](https://xmake.io). A `xmakew` wrapper (gradlew-style) is included — it uses the system `xmake` if available, otherwise downloads and builds a pinned release locally:
 
 ```
-xmake
+./xmakew
 ```
 
-The build targets `sm_80` (Ampere), links against cuSPARSE, and uses OpenMP for the CPU reference.
-
-## Usage
+## Local Usage
 
 ```
-xmake run spmv <dtype> <matrix_type> <file.mtx> [options]
+./xmakew run spmv <dtype> <matrix_type> <file.mtx> [options]
 ```
 
 | Argument | Values |
@@ -48,15 +56,44 @@ Optional flags:
 Example:
 
 ```
-xmake run spmv float csr_vec data/matrix.mtx
+./xmakew run spmv float csr_vec data/matrix.mtx
 ```
 
 Each run performs the configured warmup and timed iterations, then prints the CPU time and GFlops, the GPU mean time and GFlops, arithmetic/geometric mean and standard deviation across runs, and the error between CPU and GPU results. With `--conversion`, the COO → target-format host conversion time is reported as well.
+
+## Batch runs with `run_all.py`
+
+`run_all.py` submits one Slurm job per `(matrix, format)` pair sequentially, waiting for each to finish before submitting the next. It scans `data/` for `.mtx` files (both flat and `name/name.mtx` layouts) and submits via the sbatch script you pass as the first argument.
+
+```
+./run_all.py sbatch_l40s.sh          # all formats on L40S
+./run_all.py sbatch_a30.sh           # all formats on A30
+```
+
+Options:
+
+| Flag | Description |
+|---|---|
+| `--data <dir>` | data folder (default: `data`) |
+| `--dtype {int,float,auto}` | value type; `auto` picks `int` for pattern/integer matrices, `float` otherwise (default: `auto`) |
+| `--formats <fmt...>` | subset of formats to run (default: all) |
+| `--no-conversion` | don't pass `--conversion` to `spmv` (default: enabled) |
+| `--seed <int>` | RNG seed passed to `spmv` (default: 42) |
+
+cuSPARSE formats are skipped automatically when `dtype` resolves to `int`. Ctrl-C cancels the currently running job via `scancel`.
+
+Example — only the CSR kernels on L40S with a fixed seed:
+
+```
+./run_all.py sbatch_l40s.sh --formats csr_scalar csr_vec --seed 42
+```
 
 ## Project layout
 
 - `src/` — CUDA kernels and matrix loader
 - `inc/` — headers
-- `data/` — input matrices (Matrix Market format)
+- `data/` — input matrices (Matrix Market format), populated by `download_data.sh`
 - `report/` — report sources
-- `sbatch.sh` — Slurm submission script
+- `sbatch_l40s.sh`, `sbatch_a30.sh` — Slurm submission scripts
+- `run_all.py` — sweep driver that submits one job per `(matrix, format)`
+- `xmakew` — xmake wrapper (downloads a pinned xmake if none is installed)

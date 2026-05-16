@@ -96,11 +96,19 @@ void printInfo(cudaDeviceProp props, const Args &args, const COO_Matrix<T> &mat,
     const double peak_bw = (clock_hz * bus_bytes * 2.0) / 1e9;
 
     const double avg_nnz_per_row = static_cast<double>(nnz) / rows;
+    std::vector<uint32_t> row_counts(rows, 0);
+    for (uint32_t i = 0; i < nnz; ++i)
+        ++row_counts[mat.row_p[i]];
+    uint32_t max_nnz_per_row = 0;
+    for (uint32_t i = 0; i < rows; ++i)
+        if (row_counts[i] > max_nnz_per_row)
+            max_nnz_per_row = row_counts[i];
     printf("Device      : %s, peak BW = %.1f GB/s\n", props.name, peak_bw);
     printf("dtype       : %s\n", args.dtype.c_str());
     printf("kernel      : %s\n", args.matrix_type.c_str());
     printf("mtx_input   : %s\n", args.path.c_str());
-    printf("Matrix      : rows = %u, cols = %u, nnz = %u, avg nnz/row = %.2f\n", rows, cols, nnz, avg_nnz_per_row);
+    printf("Matrix      : rows = %u, cols = %u, nnz = %u, avg nnz/row = %.2f, max nnz/row = %u\n", rows, cols, nnz,
+           avg_nnz_per_row, max_nnz_per_row);
     printf("Launch      : blk_size = %u, grd_size = %u, ", l_conf.block_size, l_conf.grid_size);
     if (l_conf.shared_bytes > 0) {
         printf("shared : %lu bytes\n", l_conf.shared_bytes);

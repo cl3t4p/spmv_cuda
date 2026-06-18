@@ -1,5 +1,7 @@
 # spmv_cuda
 
+Author : Alex Zanetti
+
 A small CUDA project exploring **Sparse Matrix–Vector multiplication (SpMV)** across different sparse storage formats. Built for a university GPU course, it benchmarks each format against a CPU baseline and reports timing and numerical error.
 
 ## Supported formats
